@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background-color: #0d1117;
+  color: #f4f0ff;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+@keyframes star-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 8px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 6px currentColor) drop-shadow(0 0 16px currentColor)
+      drop-shadow(0 0 28px currentColor);
+  }
+}
+
+@keyframes ambient-twinkle {
+  0%,
+  100% {
+    opacity: var(--star-opacity-base, 0.2);
+  }
+  50% {
+    opacity: var(--star-opacity-peak, 0.45);
+  }
+}
