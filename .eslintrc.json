@@ -113,9 +113,17 @@
     "prefer-const": "error",
     "no-nested-ternary": "error",
     "no-param-reassign": "error",
-    "prefer-nullish-coalescing": "error",
-    "prefer-optional-chaining": "error",
+    "@typescript-eslint/prefer-nullish-coalescing": "error",
+    "@typescript-eslint/prefer-optional-chain": "error",
     "no-throw-literal": "error",
     "no-return-await": "error"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/app/**/*.ts", "src/app/**/*.tsx"],
+      "rules": {
+        "import/no-relative-parent-imports": "off"
+      }
+    }
+  ]
 }

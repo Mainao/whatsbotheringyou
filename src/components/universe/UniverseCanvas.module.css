@@ -1,0 +1,16 @@
+.universe {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #0d1117;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 50%, #111827 0%, #0d1117 70%);
+  pointer-events: none;
+  z-index: 0;
+}
