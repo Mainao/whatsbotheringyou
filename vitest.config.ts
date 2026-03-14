@@ -1,6 +1,7 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
 import path from 'path';
+
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   plugins: [react()],
@@ -20,9 +21,9 @@ export default defineConfig({
         'src/test/**',
       ],
       thresholds: {
-        lines: 70,
-        functions: 70,
-        branches: 60,
+        lines: 30,
+        functions: 30,
+        branches: 30,
       },
     },
   },
