@@ -16,6 +16,15 @@
     "test:coverage": "vitest run --coverage",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,css}": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "framer-motion": "^12.36.0",
     "next": "14.2.35",

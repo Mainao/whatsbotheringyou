@@ -85,8 +85,8 @@ reviews:
     enabled: true
     drafts: false
     base_branches:
-      - "staging"
       - "main"
+      - "staging"
 
 chat:
   auto_reply: true
