@@ -1,7 +1,7 @@
-language: "en-US"
+language: 'en-US'
 
 reviews:
-  profile: "assertive"
+  profile: 'assertive'
   request_changes_workflow: true
   high_level_summary: true
   poem: false
@@ -9,7 +9,7 @@ reviews:
   collapse_walkthrough: false
 
   path_instructions:
-    - path: "src/components/**"
+    - path: 'src/components/**'
       instructions: |
         Next.js 14 App Router, TypeScript strict mode, Tailwind CSS,
         Framer Motion, Zustand. Dark mode only — bg is always #0D1117.
@@ -18,7 +18,7 @@ reviews:
         elements, improper canvas touch/mouse event handling, and
         Tailwind classes that do not exist in v3.
 
-    - path: "src/components/universe/**"
+    - path: 'src/components/universe/**'
       instructions: |
         Universe canvas components. These use HTML5 Canvas API directly
         with React refs — no canvas library.
@@ -28,14 +28,14 @@ reviews:
         to prevent scroll while drawing, and star positions not being
         calculated as percentages of canvas size.
 
-    - path: "src/hooks/**"
+    - path: 'src/hooks/**'
       instructions: |
         Custom React hooks. Each hook owns exactly one concern.
         Check for: missing cleanup in useEffect (clearTimeout,
         cancelAnimationFrame, WebSocket.close), missing entries in
         exhaustive-deps, and missing explicit TypeScript return types.
 
-    - path: "src/app/api/**"
+    - path: 'src/app/api/**'
       instructions: |
         Next.js API routes — server-side only.
         The ANTHROPIC_API_KEY must never be referenced in client
@@ -43,28 +43,28 @@ reviews:
         Check for: missing try/catch, unvalidated request bodies,
         missing rate limiting, and async functions not properly awaited.
 
-    - path: "src/services/**"
+    - path: 'src/services/**'
       instructions: |
         All fetch() calls live here and nowhere else.
         Check for: missing error handling, hardcoded URLs instead of
         environment variables, missing request timeouts, and functions
         not returning typed responses.
 
-    - path: "src/store/**"
+    - path: 'src/store/**'
       instructions: |
         Zustand stores. One store per concern.
         Check for: missing TypeScript generics on create<T>(),
         state mutations happening outside of set(), and stores
         importing from other stores which causes circular dependencies.
 
-    - path: "src/lib/**"
+    - path: 'src/lib/**'
       instructions: |
         Pure utility functions — no React, no side effects.
         Check for: functions with side effects that should not be here,
         missing unit tests, and impure functions (same input should
         always produce same output).
 
-    - path: "src/app/api/validate-drawing/**"
+    - path: 'src/app/api/validate-drawing/**'
       instructions: |
         This route sends canvas images to the Anthropic vision API.
         Check for: missing file size validation on the incoming blob,
@@ -72,7 +72,7 @@ reviews:
         and ensure the route fails open (returns valid: true) on
         timeout rather than blocking the user.
 
-    - path: "src/app/api/moderate/**"
+    - path: 'src/app/api/moderate/**'
       instructions: |
         This route checks worry text for: spam, harmful content,
         and crisis language. Crisis language must route to the crisis
@@ -85,8 +85,8 @@ reviews:
     enabled: true
     drafts: false
     base_branches:
-      - "main"
-      - "staging"
+      - 'main'
+      - 'staging'
 
 chat:
   auto_reply: true
