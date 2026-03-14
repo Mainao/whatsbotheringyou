@@ -11,8 +11,14 @@ describe('cn', () => {
     expect(cn('text-red-500', 'bg-blue-500')).toBe('text-red-500 bg-blue-500');
   });
 
-  it('handles conditional classes', () => {
-    expect(cn('text-red-500', false && 'bg-blue-500')).toBe('text-red-500');
+  it('excludes class when condition is false', () => {
+    const isActive = false;
+    expect(cn('text-red-500', isActive && 'bg-blue-500')).toBe('text-red-500');
+  });
+
+  it('includes class when condition is true', () => {
+    const isActive = true;
+    expect(cn('text-red-500', isActive && 'bg-blue-500')).toBe('text-red-500 bg-blue-500');
   });
 
   it('resolves tailwind conflicts — last class wins', () => {
