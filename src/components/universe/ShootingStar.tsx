@@ -58,11 +58,9 @@ export default function ShootingStar() {
         } else {
           // Head moves forward, tail trails behind by `length` pixels
           const headX =
-            activeStar.startX +
-            Math.cos(activeStar.angle) * activeStar.travelDistance * eased;
+            activeStar.startX + Math.cos(activeStar.angle) * activeStar.travelDistance * eased;
           const headY =
-            activeStar.startY +
-            Math.sin(activeStar.angle) * activeStar.travelDistance * eased;
+            activeStar.startY + Math.sin(activeStar.angle) * activeStar.travelDistance * eased;
           const tailX = headX - Math.cos(activeStar.angle) * activeStar.length;
           const tailY = headY - Math.sin(activeStar.angle) * activeStar.length;
 

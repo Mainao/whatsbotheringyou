@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 
+import { ANIMATION } from '@/constants/animation';
+
 interface Star {
   xRatio: number;
   yRatio: number;
@@ -11,15 +13,11 @@ interface Star {
   phaseOffset: number;
 }
 
-const STAR_COUNT_MIN = 180;
-const STAR_COUNT_MAX = 220;
-
 function generateStars(count: number): Star[] {
   const stars: Star[] = [];
   let i = 0;
 
   while (i < count) {
-    // Each group of 3–5 stars shares similar timing so they pulse together
     const groupSize = Math.floor(Math.random() * 3) + 3;
     const groupDuration = 3000 + Math.random() * 4000;
     const groupBasePhase = Math.random() * Math.PI * 2;
@@ -28,8 +26,8 @@ function generateStars(count: number): Star[] {
       stars.push({
         xRatio: Math.random(),
         yRatio: Math.random(),
-        radius: 1 + Math.random(), // 1–2px
-        baseOpacity: 0.08 + Math.random() * 0.37, // 0.08–0.45
+        radius: 1 + Math.random(),
+        baseOpacity: 0.08 + Math.random() * 0.37,
         pulseDuration: groupDuration + (Math.random() - 0.5) * 500,
         phaseOffset: groupBasePhase + (Math.random() - 0.5) * 0.3,
       });
@@ -53,8 +51,11 @@ export default function AmbientStars() {
     if (!ctx) return;
 
     const count =
-      STAR_COUNT_MIN +
-      Math.floor(Math.random() * (STAR_COUNT_MAX - STAR_COUNT_MIN + 1));
+      ANIMATION.AMBIENT_STAR_COUNT_MIN +
+      Math.floor(
+        Math.random() * (ANIMATION.AMBIENT_STAR_COUNT_MAX - ANIMATION.AMBIENT_STAR_COUNT_MIN + 1),
+      );
+
     const stars = generateStars(count);
 
     let rafId: number;
@@ -68,9 +69,7 @@ export default function AmbientStars() {
 
       for (const star of stars) {
         const t = elapsed % star.pulseDuration;
-        const phase =
-          (t / star.pulseDuration) * Math.PI * 2 + star.phaseOffset;
-        // Sine wave from 0–1, then scale to [baseOpacity, baseOpacity + 0.25]
+        const phase = (t / star.pulseDuration) * Math.PI * 2 + star.phaseOffset;
         const sinVal = (Math.sin(phase) + 1) / 2;
         const opacity = star.baseOpacity + 0.25 * sinVal;
 
@@ -94,7 +93,6 @@ export default function AmbientStars() {
     const handleResize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // Star ratios are viewport-relative so no regeneration needed
     };
 
     window.addEventListener('resize', handleResize);
@@ -108,6 +106,7 @@ export default function AmbientStars() {
   return (
     <canvas
       ref={canvasRef}
+      aria-label="Ambient background stars"
       className="absolute inset-0 pointer-events-none"
       style={{ zIndex: 0 }}
     />
