@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest';
 import Home from './page';
 
 vi.mock('@/components/universe/UniverseCanvas', () => ({
-    default: () => <canvas aria-label="Ambient background stars" />,
+    default: () => <div data-testid="mock-universe-canvas" />,
 }));
 
 vi.mock('@/components/universe/PresenceCounter', () => ({
@@ -27,11 +27,8 @@ describe('Home page', () => {
     });
 
     it('renders the universe canvas', () => {
-        const { container } = render(<Home />);
-        const ambientCanvas = container.querySelector(
-            'canvas[aria-label="Ambient background stars"]',
-        );
-        expect(ambientCanvas).toBeInTheDocument();
+        render(<Home />);
+        expect(screen.getByTestId('mock-universe-canvas')).toBeInTheDocument();
     });
 
     it('renders the Add Star button', () => {

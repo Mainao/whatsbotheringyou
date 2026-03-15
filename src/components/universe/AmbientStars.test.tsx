@@ -23,7 +23,7 @@ describe('AmbientStars', () => {
 
         vi.stubGlobal(
             'requestAnimationFrame',
-            vi.fn(() => 0),
+            vi.fn(() => 1),
         );
 
         cancelRafMock = vi.fn();
