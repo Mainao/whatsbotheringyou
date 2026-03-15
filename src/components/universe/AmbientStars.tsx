@@ -44,12 +44,11 @@ export default function AmbientStars() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const dpr = window.devicePixelRatio ?? 1;
-
         let cssWidth = window.innerWidth;
         let cssHeight = window.innerHeight;
 
         const setSize = () => {
+            const dpr = window.devicePixelRatio ?? 1;
             cssWidth = window.innerWidth;
             cssHeight = window.innerHeight;
 

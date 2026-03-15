@@ -79,8 +79,11 @@ describe('ShootingStar', () => {
         expect(canvas?.style.zIndex).toBe('1');
     });
 
-    it('calls requestAnimationFrame on mount', () => {
+    it('calls requestAnimationFrame after the startup timer fires', () => {
         render(<ShootingStar />);
+        act(() => {
+            vi.advanceTimersByTime(3_001);
+        });
         expect(rafMock).toHaveBeenCalled();
     });
 
@@ -92,6 +95,9 @@ describe('ShootingStar', () => {
 
     it('clears the canvas on each animation frame', () => {
         render(<ShootingStar />);
+        act(() => {
+            vi.advanceTimersByTime(3_001);
+        });
         act(() => {
             rafCallback?.(100);
         });

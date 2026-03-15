@@ -35,7 +35,7 @@ export default function ShootingStar() {
 
         ctx.scale(dpr, dpr);
 
-        let rafId: number;
+        let rafId = 0;
         let timerId: ReturnType<typeof setTimeout> | null = null;
         let activeStar: ShootingStarData | null = null;
         let starStartTime = 0;
@@ -57,10 +57,13 @@ export default function ShootingStar() {
                     travelDistance: 250 + Math.random() * 150,
                 };
                 starStartTime = performance.now();
+                rafId = requestAnimationFrame(animate);
             }, delay);
         };
 
-        const animate = (timestamp: number) => {
+        // function declaration so scheduleNext's timeout callback can reference it
+        // via hoisting without a forward-reference TypeScript error
+        function animate(timestamp: number) {
             ctx.clearRect(0, 0, cssWidth, cssHeight);
 
             if (activeStar) {
@@ -71,6 +74,7 @@ export default function ShootingStar() {
                 if (progress >= 1) {
                     activeStar = null;
                     scheduleNext();
+                    // loop stops here — restarts from inside scheduleNext's timeout
                 } else {
                     const startX = activeStar.startXRatio * cssWidth;
                     const startY = activeStar.startYRatio * cssHeight;
@@ -91,14 +95,13 @@ export default function ShootingStar() {
                     ctx.strokeStyle = grad;
                     ctx.lineWidth = 1;
                     ctx.stroke();
+
+                    rafId = requestAnimationFrame(animate);
                 }
             }
-
-            rafId = requestAnimationFrame(animate);
-        };
+        }
 
         scheduleNext(true);
-        rafId = requestAnimationFrame(animate);
 
         const handleResize = () => {
             const currentDpr = window.devicePixelRatio ?? 1;
