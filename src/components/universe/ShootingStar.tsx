@@ -64,6 +64,7 @@ export default function ShootingStar() {
         // function declaration so scheduleNext's timeout callback can reference it
         // via hoisting without a forward-reference TypeScript error
         function animate(timestamp: number) {
+            if (!ctx) return;
             ctx.clearRect(0, 0, cssWidth, cssHeight);
 
             if (activeStar) {
