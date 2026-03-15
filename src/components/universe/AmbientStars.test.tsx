@@ -15,6 +15,7 @@ describe('AmbientStars', () => {
             stroke: vi.fn(),
             moveTo: vi.fn(),
             lineTo: vi.fn(),
+            scale: vi.fn(),
             fillStyle: '',
             createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
             createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),

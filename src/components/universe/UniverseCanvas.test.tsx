@@ -1,37 +1,17 @@
 import { render } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import UniverseCanvas from '@/components/universe/UniverseCanvas';
 
+vi.mock('@/components/universe/AmbientStars', () => ({
+    default: () => <canvas aria-label="Ambient background stars" />,
+}));
+
+vi.mock('@/components/universe/ShootingStar', () => ({
+    default: () => <canvas />,
+}));
+
 describe('UniverseCanvas', () => {
-    beforeEach(() => {
-        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-            clearRect: vi.fn(),
-            beginPath: vi.fn(),
-            arc: vi.fn(),
-            fill: vi.fn(),
-            stroke: vi.fn(),
-            moveTo: vi.fn(),
-            lineTo: vi.fn(),
-            fillStyle: '',
-            lineWidth: 0,
-            strokeStyle: '',
-            createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-            createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-        } as unknown as CanvasRenderingContext2D);
-
-        vi.stubGlobal(
-            'requestAnimationFrame',
-            vi.fn(() => 0),
-        );
-        vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
-    });
-
     it('renders without crashing', () => {
         const { container } = render(<UniverseCanvas />);
         expect(container).toBeInTheDocument();

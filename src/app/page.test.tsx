@@ -1,37 +1,21 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 import Home from './page';
 
+vi.mock('@/components/universe/UniverseCanvas', () => ({
+    default: () => <canvas aria-label="Ambient background stars" />,
+}));
+
+vi.mock('@/components/universe/PresenceCounter', () => ({
+    default: ({ count = 0 }: { count?: number }) => (
+        <p>
+            {count.toLocaleString('en-US')} {count === 1 ? 'star' : 'stars'} in the galaxy
+        </p>
+    ),
+}));
+
 describe('Home page', () => {
-    beforeEach(() => {
-        vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
-            clearRect: vi.fn(),
-            beginPath: vi.fn(),
-            arc: vi.fn(),
-            fill: vi.fn(),
-            stroke: vi.fn(),
-            moveTo: vi.fn(),
-            lineTo: vi.fn(),
-            fillStyle: '',
-            lineWidth: 0,
-            strokeStyle: '',
-            createRadialGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-            createLinearGradient: vi.fn(() => ({ addColorStop: vi.fn() })),
-        } as unknown as CanvasRenderingContext2D);
-
-        vi.stubGlobal(
-            'requestAnimationFrame',
-            vi.fn(() => 0),
-        );
-        vi.stubGlobal('cancelAnimationFrame', vi.fn());
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-        vi.unstubAllGlobals();
-    });
-
     it('renders without crashing', () => {
         const { container } = render(<Home />);
         expect(container).toBeInTheDocument();
