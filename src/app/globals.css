@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+    --vh: 1vh;
     color-scheme: dark;
 }
 
@@ -10,8 +11,10 @@ html,
 body {
     background-color: #0d1117;
     color: #f4f0ff;
-    font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
     overflow: hidden;
+    margin: 0;
+    padding: 0;
 }
 
 @keyframes star-pulse {
