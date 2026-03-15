@@ -90,14 +90,14 @@ describe('ShootingStar', () => {
     it('calls cancelAnimationFrame with the correct handle on unmount', () => {
         const { unmount } = render(<ShootingStar />);
 
-        // RAF is scheduled immediately on mount — get the handle
-        const rafHandle = (global.requestAnimationFrame as ReturnType<typeof vi.fn>).mock.results[0]
-            ?.value as number;
-
-        // Advance timers to let startup scheduling run
+        // Advance timers to let startup scheduling run, then RAF is called
         act(() => {
             vi.advanceTimersByTime(3001);
         });
+
+        // RAF is scheduled after the startup timer fires — get the handle
+        const rafHandle = (global.requestAnimationFrame as ReturnType<typeof vi.fn>).mock.results[0]
+            ?.value as number;
 
         unmount();
 
