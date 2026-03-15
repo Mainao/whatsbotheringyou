@@ -87,10 +87,22 @@ describe('ShootingStar', () => {
         expect(rafMock).toHaveBeenCalled();
     });
 
-    it('calls cancelAnimationFrame on unmount', () => {
+    it('calls cancelAnimationFrame with the correct handle on unmount', () => {
         const { unmount } = render(<ShootingStar />);
+
+        // RAF is scheduled immediately on mount — get the handle
+        const rafHandle = (global.requestAnimationFrame as ReturnType<typeof vi.fn>).mock.results[0]
+            ?.value as number;
+
+        // Advance timers to let startup scheduling run
+        act(() => {
+            vi.advanceTimersByTime(3001);
+        });
+
         unmount();
-        expect(cancelRafMock).toHaveBeenCalled();
+
+        expect(cancelRafMock).toHaveBeenCalledWith(rafHandle);
+        expect(cancelRafMock).toHaveBeenCalledTimes(1);
     });
 
     it('clears the canvas on each animation frame', () => {
