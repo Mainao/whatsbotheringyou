@@ -46,17 +46,23 @@ export default function AmbientStars() {
 
         const dpr = window.devicePixelRatio ?? 1;
 
-        const setSize = () => {
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+        let cssWidth = window.innerWidth;
+        let cssHeight = window.innerHeight;
 
-            canvas.style.width = `${w}px`;
-            canvas.style.height = `${h}px`;
-            canvas.width = w * dpr;
-            canvas.height = h * dpr;
+        const setSize = () => {
+            cssWidth = window.innerWidth;
+            cssHeight = window.innerHeight;
+
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
+            canvas.width = cssWidth * dpr;
+            canvas.height = cssHeight * dpr;
 
             const ctx = canvas.getContext('2d');
-            if (ctx) ctx.scale(dpr, dpr);
+            if (ctx) {
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(dpr, dpr);
+            }
         };
 
         setSize();
@@ -64,7 +70,6 @@ export default function AmbientStars() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        // Set CSS custom property for real mobile viewport height
         const setVh = () => {
             const vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -88,10 +93,7 @@ export default function AmbientStars() {
             if (startTime === 0) startTime = timestamp;
             const elapsed = timestamp - startTime;
 
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-
-            ctx.clearRect(0, 0, w, h);
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
 
             for (const star of stars) {
                 const t = elapsed % star.pulseDuration;
@@ -100,7 +102,13 @@ export default function AmbientStars() {
                 const opacity = star.baseOpacity + 0.25 * sinVal;
 
                 ctx.beginPath();
-                ctx.arc(star.xRatio * w, star.yRatio * h, star.radius, 0, Math.PI * 2);
+                ctx.arc(
+                    star.xRatio * cssWidth,
+                    star.yRatio * cssHeight,
+                    star.radius,
+                    0,
+                    Math.PI * 2,
+                );
                 ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                 ctx.fill();
             }

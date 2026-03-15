@@ -7,10 +7,10 @@ import { ANIMATION } from '@/constants/animation';
 interface ShootingStarData {
     startXRatio: number;
     startYRatio: number;
-    angle: number; // radians, 20–70°
-    length: number; // 80–120px
-    duration: number; // ms, 1000–1400
-    travelDistance: number; // px
+    angle: number;
+    length: number;
+    duration: number;
+    travelDistance: number;
 }
 
 export default function ShootingStar() {
@@ -22,10 +22,13 @@ export default function ShootingStar() {
 
         const dpr = window.devicePixelRatio || 1;
 
-        canvas.width = window.innerWidth * dpr;
-        canvas.height = window.innerHeight * dpr;
-        canvas.style.width = `${window.innerWidth}px`;
-        canvas.style.height = `${window.innerHeight}px`;
+        let cssWidth = window.innerWidth;
+        let cssHeight = window.innerHeight;
+
+        canvas.width = cssWidth * dpr;
+        canvas.height = cssHeight * dpr;
+        canvas.style.width = `${cssWidth}px`;
+        canvas.style.height = `${cssHeight}px`;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
@@ -58,20 +61,19 @@ export default function ShootingStar() {
         };
 
         const animate = (timestamp: number) => {
-            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+            ctx.clearRect(0, 0, cssWidth, cssHeight);
 
             if (activeStar) {
                 const elapsed = timestamp - starStartTime;
                 const progress = Math.min(elapsed / activeStar.duration, 1);
-                const eased = progress * progress; // ease-in
+                const eased = progress * progress;
 
                 if (progress >= 1) {
                     activeStar = null;
                     scheduleNext();
                 } else {
-                    // Head moves forward, tail trails behind by `length` pixels
-                    const startX = activeStar.startXRatio * window.innerWidth;
-                    const startY = activeStar.startYRatio * window.innerHeight;
+                    const startX = activeStar.startXRatio * cssWidth;
+                    const startY = activeStar.startYRatio * cssHeight;
                     const headX =
                         startX + Math.cos(activeStar.angle) * activeStar.travelDistance * eased;
                     const headY =
@@ -100,13 +102,13 @@ export default function ShootingStar() {
 
         const handleResize = () => {
             const currentDpr = window.devicePixelRatio ?? 1;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
+            cssWidth = window.innerWidth;
+            cssHeight = window.innerHeight;
 
-            canvas.style.width = `${w}px`;
-            canvas.style.height = `${h}px`;
-            canvas.width = w * currentDpr;
-            canvas.height = h * currentDpr;
+            canvas.style.width = `${cssWidth}px`;
+            canvas.style.height = `${cssHeight}px`;
+            canvas.width = cssWidth * currentDpr;
+            canvas.height = cssHeight * currentDpr;
 
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(currentDpr, currentDpr);
