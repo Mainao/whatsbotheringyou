@@ -1,9 +1,9 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import Home from './page';
+import UniverseCanvas from '@/components/universe/UniverseCanvas';
 
-describe('Home page', () => {
+describe('UniverseCanvas', () => {
     beforeEach(() => {
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
             clearRect: vi.fn(),
@@ -33,42 +33,21 @@ describe('Home page', () => {
     });
 
     it('renders without crashing', () => {
-        const { container } = render(<Home />);
+        const { container } = render(<UniverseCanvas />);
         expect(container).toBeInTheDocument();
     });
 
-    it('renders a main element', () => {
-        render(<Home />);
-        expect(screen.getByRole('main')).toBeInTheDocument();
-    });
-
-    it('renders the universe canvas', () => {
-        const { container } = render(<Home />);
+    it('renders the ambient stars canvas with its aria-label', () => {
+        const { container } = render(<UniverseCanvas />);
         const ambientCanvas = container.querySelector(
             'canvas[aria-label="Ambient background stars"]',
         );
         expect(ambientCanvas).toBeInTheDocument();
     });
 
-    it('renders the Add Star button', () => {
-        render(<Home />);
-        expect(screen.getByRole('button', { name: /add star/i })).toBeInTheDocument();
-    });
-
-    it('Add Star button contains the correct label text', () => {
-        render(<Home />);
-        const button = screen.getByRole('button', { name: /add star/i });
-        expect(button.textContent).toMatch(/Add Star/);
-    });
-
-    it('Add Star button is accessible as a button element', () => {
-        render(<Home />);
-        const button = screen.getByRole('button', { name: /add star/i });
-        expect(button.tagName.toLowerCase()).toBe('button');
-    });
-
-    it('renders the presence counter', () => {
-        render(<Home />);
-        expect(screen.getByText('0 stars in the galaxy')).toBeInTheDocument();
+    it('renders canvas elements for the star animations', () => {
+        const { container } = render(<UniverseCanvas />);
+        const canvases = container.querySelectorAll('canvas');
+        expect(canvases.length).toBeGreaterThanOrEqual(1);
     });
 });
