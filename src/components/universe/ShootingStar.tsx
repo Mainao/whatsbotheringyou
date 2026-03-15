@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 
+import { ANIMATION } from '@/constants/animation';
+
 interface ShootingStarData {
     startX: number;
     startY: number;
@@ -18,26 +20,37 @@ export default function ShootingStar() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = `${window.innerWidth}px`;
+        canvas.style.height = `${window.innerHeight}px`;
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        ctx.scale(dpr, dpr);
 
         let rafId: number;
         let timerId: ReturnType<typeof setTimeout> | null = null;
         let activeStar: ShootingStarData | null = null;
         let starStartTime = 0;
 
-        const scheduleNext = () => {
-            const delay = 45000 + Math.random() * 45000; // 45–90s
+        const scheduleNext = (startup = false) => {
+            const delay = startup
+                ? Math.random() * 3000
+                : ANIMATION.SHOOTING_STAR_MIN_INTERVAL_MS +
+                  Math.random() *
+                      (ANIMATION.SHOOTING_STAR_MAX_INTERVAL_MS -
+                          ANIMATION.SHOOTING_STAR_MIN_INTERVAL_MS);
             timerId = setTimeout(() => {
                 activeStar = {
                     startX: Math.random() * window.innerWidth,
                     startY: Math.random() * window.innerHeight * 0.6,
                     angle: (20 + Math.random() * 50) * (Math.PI / 180),
                     length: 80 + Math.random() * 40,
-                    duration: 1000 + Math.random() * 400,
+                    duration: ANIMATION.SHOOTING_STAR_DURATION_MS,
                     travelDistance: 250 + Math.random() * 150,
                 };
                 starStartTime = performance.now();
@@ -45,7 +58,7 @@ export default function ShootingStar() {
         };
 
         const animate = (timestamp: number) => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
             if (activeStar) {
                 const elapsed = timestamp - starStartTime;
@@ -82,12 +95,15 @@ export default function ShootingStar() {
             rafId = requestAnimationFrame(animate);
         };
 
-        scheduleNext();
+        scheduleNext(true);
         rafId = requestAnimationFrame(animate);
 
         const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            canvas.style.width = `${window.innerWidth}px`;
+            canvas.style.height = `${window.innerHeight}px`;
+            ctx.scale(dpr, dpr);
         };
 
         window.addEventListener('resize', handleResize);
