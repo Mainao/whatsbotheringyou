@@ -47,9 +47,12 @@ describe('AmbientStars', () => {
         expect(canvas).toHaveAttribute('aria-label', 'Ambient background stars');
     });
 
-    it('calls cancelAnimationFrame on unmount', () => {
+    it('calls cancelAnimationFrame with the correct handle on unmount', () => {
         const { unmount } = render(<AmbientStars />);
+        const rafHandle = (global.requestAnimationFrame as ReturnType<typeof vi.fn>).mock.results[0]
+            ?.value as number;
         unmount();
-        expect(cancelRafMock).toHaveBeenCalled();
+        expect(cancelRafMock).toHaveBeenCalledWith(rafHandle);
+        expect(cancelRafMock).toHaveBeenCalledTimes(1);
     });
 });

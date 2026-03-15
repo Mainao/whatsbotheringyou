@@ -99,11 +99,17 @@ export default function ShootingStar() {
         rafId = requestAnimationFrame(animate);
 
         const handleResize = () => {
-            canvas.width = window.innerWidth * dpr;
-            canvas.height = window.innerHeight * dpr;
-            canvas.style.width = `${window.innerWidth}px`;
-            canvas.style.height = `${window.innerHeight}px`;
-            ctx.scale(dpr, dpr);
+            const currentDpr = window.devicePixelRatio ?? 1;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            canvas.width = w * currentDpr;
+            canvas.height = h * currentDpr;
+
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(currentDpr, currentDpr);
         };
 
         window.addEventListener('resize', handleResize);
@@ -119,7 +125,7 @@ export default function ShootingStar() {
         <canvas
             ref={canvasRef}
             className="absolute inset-0 pointer-events-none"
-            style={{ zIndex: 1 }}
+            style={{ zIndex: 1, touchAction: 'none' }}
         />
     );
 }

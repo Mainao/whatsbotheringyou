@@ -11,23 +11,19 @@ export default function Home() {
             {/* Add Star button — fixed top-left */}
             <button
                 type="button"
-                aria-disabled="true"
-                onClick={() => {
-                    // placeholder — modal wired up in a later iteration
-                }}
+                disabled
                 className="
-          fixed top-4 left-4 z-20
-          flex items-center gap-1.5
-          px-[18px] py-[10px]
-          rounded-full
-          bg-bg-surface/80
-          border border-brand/40
-          text-text-primary text-sm font-medium
-          backdrop-blur
-          cursor-pointer
-          transition-all duration-200
-          hover:border-brand/80 hover:bg-bg-raised/85
-        "
+        fixed top-4 left-4 z-20
+        flex items-center gap-1.5
+        px-[18px] py-[10px]
+        rounded-full
+        bg-bg-surface/80
+        border border-brand/40
+        text-text-primary text-sm font-medium
+        backdrop-blur
+        opacity-60
+        cursor-not-allowed
+    "
             >
                 <span className="text-[11px] leading-none">✦</span>
                 Add Star
