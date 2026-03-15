@@ -24,7 +24,7 @@ const config: Config = {
                 'text-muted': '#888899',
             },
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
             },
             animation: {
                 'star-pulse': 'star-pulse 3s ease-in-out infinite',

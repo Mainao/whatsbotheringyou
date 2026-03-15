@@ -11,6 +11,7 @@ export default function Home() {
             {/* Add Star button — fixed top-left */}
             <button
                 type="button"
+                aria-disabled="true"
                 onClick={() => {
                     // placeholder — modal wired up in a later iteration
                 }}

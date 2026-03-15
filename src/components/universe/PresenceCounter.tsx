@@ -1,5 +1,5 @@
 interface PresenceCounterProps {
-    count?: number;
+    readonly count?: number;
 }
 
 export default function PresenceCounter({ count = 0 }: PresenceCounterProps) {
