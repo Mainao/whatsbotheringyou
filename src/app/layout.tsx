@@ -12,7 +12,14 @@ const inter = Inter({
 
 export const metadata: Metadata = {
     title: 'WhatsBotheringYou',
-    description: 'A galaxy of tiny worries, shared with the universe.',
+    description: 'Tell the universe what is bothering you.',
+};
+
+export const viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
 };
 
 export default function RootLayout({
