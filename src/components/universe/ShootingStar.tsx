@@ -5,8 +5,8 @@ import { useEffect, useRef } from 'react';
 import { ANIMATION } from '@/constants/animation';
 
 interface ShootingStarData {
-    startX: number;
-    startY: number;
+    startXRatio: number;
+    startYRatio: number;
     angle: number; // radians, 20–70°
     length: number; // 80–120px
     duration: number; // ms, 1000–1400
@@ -46,8 +46,8 @@ export default function ShootingStar() {
                           ANIMATION.SHOOTING_STAR_MIN_INTERVAL_MS);
             timerId = setTimeout(() => {
                 activeStar = {
-                    startX: Math.random() * window.innerWidth,
-                    startY: Math.random() * window.innerHeight * 0.6,
+                    startXRatio: Math.random(),
+                    startYRatio: Math.random() * 0.6,
                     angle: (20 + Math.random() * 50) * (Math.PI / 180),
                     length: 80 + Math.random() * 40,
                     duration: ANIMATION.SHOOTING_STAR_DURATION_MS,
@@ -70,12 +70,12 @@ export default function ShootingStar() {
                     scheduleNext();
                 } else {
                     // Head moves forward, tail trails behind by `length` pixels
+                    const startX = activeStar.startXRatio * window.innerWidth;
+                    const startY = activeStar.startYRatio * window.innerHeight;
                     const headX =
-                        activeStar.startX +
-                        Math.cos(activeStar.angle) * activeStar.travelDistance * eased;
+                        startX + Math.cos(activeStar.angle) * activeStar.travelDistance * eased;
                     const headY =
-                        activeStar.startY +
-                        Math.sin(activeStar.angle) * activeStar.travelDistance * eased;
+                        startY + Math.sin(activeStar.angle) * activeStar.travelDistance * eased;
                     const tailX = headX - Math.cos(activeStar.angle) * activeStar.length;
                     const tailY = headY - Math.sin(activeStar.angle) * activeStar.length;
 
