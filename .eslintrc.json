@@ -92,6 +92,10 @@
                         "group": "internal"
                     },
                     {
+                        "pattern": "@/styles/**",
+                        "group": "internal"
+                    },
+                    {
                         "pattern": "@/components/**",
                         "group": "internal",
                         "position": "after"
