@@ -44,11 +44,33 @@ export default function AmbientStars() {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const dpr = window.devicePixelRatio ?? 1;
+
+        const setSize = () => {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            canvas.style.width = `${w}px`;
+            canvas.style.height = `${h}px`;
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.scale(dpr, dpr);
+        };
+
+        setSize();
 
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
+
+        // Set CSS custom property for real mobile viewport height
+        const setVh = () => {
+            const vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+        };
+
+        setVh();
 
         const count =
             ANIMATION.AMBIENT_STAR_COUNT_MIN +
@@ -66,7 +88,10 @@ export default function AmbientStars() {
             if (startTime === 0) startTime = timestamp;
             const elapsed = timestamp - startTime;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            ctx.clearRect(0, 0, w, h);
 
             for (const star of stars) {
                 const t = elapsed % star.pulseDuration;
@@ -75,13 +100,7 @@ export default function AmbientStars() {
                 const opacity = star.baseOpacity + 0.25 * sinVal;
 
                 ctx.beginPath();
-                ctx.arc(
-                    star.xRatio * canvas.width,
-                    star.yRatio * canvas.height,
-                    star.radius,
-                    0,
-                    Math.PI * 2,
-                );
+                ctx.arc(star.xRatio * w, star.yRatio * h, star.radius, 0, Math.PI * 2);
                 ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
                 ctx.fill();
             }
@@ -92,8 +111,8 @@ export default function AmbientStars() {
         rafId = requestAnimationFrame(draw);
 
         const handleResize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
+            setSize();
+            setVh();
         };
 
         window.addEventListener('resize', handleResize);
@@ -109,7 +128,7 @@ export default function AmbientStars() {
             ref={canvasRef}
             aria-label="Ambient background stars"
             className="absolute inset-0 pointer-events-none"
-            style={{ zIndex: 0 }}
+            style={{ zIndex: 0, touchAction: 'none' }}
         />
     );
 }
