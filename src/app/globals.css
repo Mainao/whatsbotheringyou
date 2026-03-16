@@ -28,6 +28,12 @@ body {
     }
 }
 
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 @keyframes ambient-twinkle {
     0%,
     100% {
