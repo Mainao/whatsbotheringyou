@@ -12,7 +12,14 @@ export interface DrawingCanvasHandle {
     undo: () => void;
 }
 
-const DrawingCanvas = forwardRef<DrawingCanvasHandle, object>(function DrawingCanvas(_, ref) {
+interface DrawingCanvasProps {
+    onBlankChange?: (isBlank: boolean) => void;
+}
+
+const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(function DrawingCanvas(
+    { onBlankChange },
+    ref,
+) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const {
         startStroke,
@@ -44,6 +51,10 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, object>(function DrawingCa
     }, []);
 
     useEffect(() => {
+        onBlankChange?.(isBlank);
+    }, [isBlank, onBlankChange]);
+
+    useEffect(() => {
         setColour('#FFFFFF');
         setSize(6);
     }, [setColour, setSize]);
@@ -57,65 +68,44 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, object>(function DrawingCa
     }));
 
     return (
-        <div
-            style={{
-                filter: 'drop-shadow(0 0 4px #FFFFFF) drop-shadow(0 0 12px rgba(255,255,255,0.5))',
-            }}
-        >
-            <div className="relative">
-                <canvas
-                    ref={canvasRef}
-                    className="w-full rounded-xl block"
-                    style={{
-                        height: '260px',
-                        background: '#0D1117',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        touchAction: 'none',
-                        cursor: 'crosshair',
-                    }}
-                    aria-label="Drawing canvas — draw your star here"
-                    onMouseDown={(e) => startStroke(e.nativeEvent.offsetX, e.nativeEvent.offsetY)}
-                    onMouseMove={(e) => {
-                        if (e.buttons === 1) {
-                            continueStroke(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-                        }
-                    }}
-                    onMouseUp={endStroke}
-                    onMouseLeave={endStroke}
-                    onTouchStart={(e) => {
-                        e.preventDefault();
-                        const rect = canvasRef.current?.getBoundingClientRect();
-                        if (!rect) return;
-                        const touch = e.touches[0];
-                        if (!touch) return;
-                        startStroke(touch.clientX - rect.left, touch.clientY - rect.top);
-                    }}
-                    onTouchMove={(e) => {
-                        e.preventDefault();
-                        const rect = canvasRef.current?.getBoundingClientRect();
-                        if (!rect) return;
-                        const touch = e.touches[0];
-                        if (!touch) return;
-                        continueStroke(touch.clientX - rect.left, touch.clientY - rect.top);
-                    }}
-                    onTouchEnd={endStroke}
-                />
-                {isBlank && (
-                    <span
-                        style={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            color: '#888899',
-                            fontSize: '14px',
-                            pointerEvents: 'none',
-                        }}
-                    >
-                        Draw here...
-                    </span>
-                )}
-            </div>
+        <div className="relative">
+            <canvas
+                ref={canvasRef}
+                className="w-full rounded-xl block"
+                style={{
+                    height: '260px',
+                    background: '#0D1117',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    touchAction: 'none',
+                    cursor: 'crosshair',
+                }}
+                aria-label="Drawing canvas — draw your star here"
+                onMouseDown={(e) => startStroke(e.nativeEvent.offsetX, e.nativeEvent.offsetY)}
+                onMouseMove={(e) => {
+                    if (e.buttons === 1) {
+                        continueStroke(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+                    }
+                }}
+                onMouseUp={endStroke}
+                onMouseLeave={endStroke}
+                onTouchStart={(e) => {
+                    e.preventDefault();
+                    const rect = canvasRef.current?.getBoundingClientRect();
+                    if (!rect) return;
+                    const touch = e.touches[0];
+                    if (!touch) return;
+                    startStroke(touch.clientX - rect.left, touch.clientY - rect.top);
+                }}
+                onTouchMove={(e) => {
+                    e.preventDefault();
+                    const rect = canvasRef.current?.getBoundingClientRect();
+                    if (!rect) return;
+                    const touch = e.touches[0];
+                    if (!touch) return;
+                    continueStroke(touch.clientX - rect.left, touch.clientY - rect.top);
+                }}
+                onTouchEnd={endStroke}
+            />
         </div>
     );
 });

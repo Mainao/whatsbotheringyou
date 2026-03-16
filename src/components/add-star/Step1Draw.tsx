@@ -16,6 +16,7 @@ export default function Step1Draw() {
     const nextStep = useModalStore((s) => s.nextStep);
     const setCanvasBlob = useDrawingStore((s) => s.setCanvasBlob);
 
+    const [isCanvasBlank, setIsCanvasBlank] = useState(true);
     const [isValidating, setIsValidating] = useState(false);
     const [validationMessage, setValidationMessage] = useState('');
     const [messageType, setMessageType] = useState<MessageType>('');
@@ -30,7 +31,7 @@ export default function Step1Draw() {
     };
 
     const handleContinue = async () => {
-        if (canvasRef.current?.isBlank) {
+        if (isCanvasBlank) {
             showMessage('Please draw something first', 'blank', 3000);
             return;
         }
@@ -95,7 +96,7 @@ export default function Step1Draw() {
                 Draw your star
             </h2>
 
-            <DrawingCanvas ref={canvasRef} />
+            <DrawingCanvas ref={canvasRef} onBlankChange={setIsCanvasBlank} />
 
             <div
                 aria-live="polite"
@@ -115,10 +116,28 @@ export default function Step1Draw() {
             <div
                 style={{
                     display: 'flex',
-                    justifyContent: 'flex-end',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
                     marginTop: '24px',
                 }}
             >
+                <button
+                    type="button"
+                    disabled={isCanvasBlank}
+                    onClick={() => {
+                        canvasRef.current?.clearCanvas();
+                    }}
+                    style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: isCanvasBlank ? 'default' : 'pointer',
+                        fontSize: '14px',
+                        color: '#F4F0FF',
+                        opacity: isCanvasBlank ? 0.4 : 1,
+                    }}
+                >
+                    ↩ Undo
+                </button>
                 <button
                     onClick={() => {
                         void handleContinue();

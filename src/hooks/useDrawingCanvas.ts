@@ -51,6 +51,7 @@ export default function useDrawingCanvas(
     };
 
     const endStroke = (): void => {
+        if (!isDrawing.current) return;
         const canvas = canvasRef.current;
         const ctx = getCtx();
         if (!canvas || !ctx) return;
