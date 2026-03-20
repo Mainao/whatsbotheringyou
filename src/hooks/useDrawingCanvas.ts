@@ -1,12 +1,14 @@
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 export interface DrawingCanvasHandle {
     startStroke: (x: number, y: number) => void;
     continueStroke: (x: number, y: number) => void;
     endStroke: () => void;
+    cancelStroke: () => void;
     undo: () => void;
     exportBlob: () => Promise<Blob>;
     clearCanvas: () => void;
+    clearUndoStack: () => void;
     isBlank: boolean;
     strokeCount: number;
     setColour: (hex: string) => void;
@@ -94,6 +96,14 @@ export default function useDrawingCanvas(
         });
     };
 
+    const cancelStroke = (): void => {
+        isDrawing.current = false;
+    };
+
+    const clearUndoStack = useCallback((): void => {
+        undoStack.current = [];
+    }, []);
+
     const clearCanvas = (): void => {
         const canvas = canvasRef.current;
         const ctx = getCtx();
@@ -134,9 +144,11 @@ export default function useDrawingCanvas(
         startStroke,
         continueStroke,
         endStroke,
+        cancelStroke,
         undo,
         exportBlob,
         clearCanvas,
+        clearUndoStack,
         isBlank,
         strokeCount,
         setColour,

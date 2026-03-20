@@ -13,6 +13,7 @@ const mockCtx = {
     lineTo: vi.fn(),
     stroke: vi.fn(),
     clearRect: vi.fn(),
+    drawImage: vi.fn(),
     getImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
     putImageData: vi.fn(),
     strokeStyle: '' as string,

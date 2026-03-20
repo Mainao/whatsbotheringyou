@@ -25,9 +25,11 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         startStroke,
         continueStroke,
         endStroke,
+        cancelStroke,
         undo,
         exportBlob,
         clearCanvas,
+        clearUndoStack,
         isBlank,
         strokeCount,
         setColour,
@@ -39,8 +41,20 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         if (!canvas) return;
 
         const syncSize = () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const newW = canvas.offsetWidth;
+            const newH = canvas.offsetHeight;
+            if (canvas.width === newW && canvas.height === newH) return;
+
+            const offscreen = document.createElement('canvas');
+            offscreen.width = canvas.width;
+            offscreen.height = canvas.height;
+            offscreen.getContext('2d')?.drawImage(canvas, 0, 0);
+
+            canvas.width = newW;
+            canvas.height = newH;
+            canvas.getContext('2d')?.drawImage(offscreen, 0, 0, newW, newH);
+
+            clearUndoStack();
         };
 
         syncSize();
@@ -48,7 +62,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         const ro = new ResizeObserver(syncSize);
         ro.observe(canvas);
         return () => ro.disconnect();
-    }, []);
+    }, [clearUndoStack]);
 
     useEffect(() => {
         onBlankChange?.(isBlank);
@@ -99,6 +113,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
                     continueStroke(touch.clientX - rect.left, touch.clientY - rect.top);
                 }}
                 onTouchEnd={endStroke}
+                onTouchCancel={cancelStroke}
             />
         </div>
     );
