@@ -1,5 +1,4 @@
-import { render, screen, act } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Modal } from './Modal';
@@ -123,20 +122,20 @@ describe('Modal', () => {
         expect(onClose).toHaveBeenCalledOnce();
     });
 
-    it('calls onClose when clicking the backdrop (dialog element itself)', async () => {
+    it('calls onClose when clicking the backdrop (dialog element itself)', () => {
         const onClose = vi.fn();
         renderModal(true, onClose);
         const dialog = document.querySelector('dialog');
         if (dialog) {
-            await userEvent.click(dialog);
+            fireEvent.click(dialog);
         }
         expect(onClose).toHaveBeenCalledOnce();
     });
 
-    it('does not call onClose when clicking inside the dialog content', async () => {
+    it('does not call onClose when clicking inside the dialog content', () => {
         const onClose = vi.fn();
         renderModal(true, onClose);
-        await userEvent.click(screen.getByText('Modal content'));
+        fireEvent.click(screen.getByText('Modal content'));
         expect(onClose).not.toHaveBeenCalled();
     });
 

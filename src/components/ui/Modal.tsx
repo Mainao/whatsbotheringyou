@@ -40,16 +40,16 @@ const Modal = ({
                 dialog.close();
                 setIsClosing(false);
             }, CLOSE_DURATION);
-            return () => {
-                clearTimeout(timer);
-                if (dialog.open) dialog.close();
-            };
+            return () => clearTimeout(timer);
         }
-
-        return () => {
-            if (dialog.open) dialog.close();
-        };
     }, [isOpen]);
+
+    useEffect(() => {
+        const dialog = dialogRef.current;
+        return () => {
+            if (dialog?.open) dialog.close();
+        };
+    }, []);
 
     useEffect(() => {
         const dialog = dialogRef.current;
