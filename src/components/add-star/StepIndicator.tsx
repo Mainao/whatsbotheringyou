@@ -5,35 +5,22 @@ interface StepIndicatorProps {
 function Dot({ active }: { active: boolean }) {
     return (
         <div
-            style={
+            className={
                 active
-                    ? {
-                          width: '10px',
-                          height: '10px',
-                          borderRadius: '50%',
-                          background: '#7C5CBF',
-                          flexShrink: 0,
-                      }
-                    : {
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          border: '1.5px solid #888899',
-                          background: 'transparent',
-                          flexShrink: 0,
-                      }
+                    ? 'size-[10px] shrink-0 rounded-full bg-brand'
+                    : 'size-2 shrink-0 rounded-full border-[1.5px] border-text-muted bg-transparent'
             }
         />
     );
 }
 
 function Line() {
-    return <div style={{ width: '40px', height: '1px', background: '#888899', flexShrink: 0 }} />;
+    return <div className="h-px w-10 shrink-0 bg-text-muted" />;
 }
 
 export default function StepIndicator({ currentStep }: StepIndicatorProps) {
     return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="flex items-center justify-center">
             <Dot active={currentStep === 1} />
             <Line />
             <Dot active={currentStep === 2} />

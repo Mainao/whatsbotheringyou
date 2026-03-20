@@ -71,14 +71,8 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         <div className="relative">
             <canvas
                 ref={canvasRef}
-                className="w-full rounded-xl block"
-                style={{
-                    height: '260px',
-                    background: '#0D1117',
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    touchAction: 'none',
-                    cursor: 'crosshair',
-                }}
+                className="block h-[260px] w-full cursor-crosshair touch-none rounded-xl bg-bg-base"
+                style={{ border: '1px solid rgba(255,255,255,0.08)' }}
                 aria-label="Drawing canvas — draw your star here"
                 onMouseDown={(e) => startStroke(e.nativeEvent.offsetX, e.nativeEvent.offsetY)}
                 onMouseMove={(e) => {

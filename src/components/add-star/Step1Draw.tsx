@@ -6,6 +6,7 @@ import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
 
 import DrawingCanvas from '@/components/add-star/DrawingCanvas';
+import { Button } from '@/components/ui/Button';
 
 import type { DrawingCanvasHandle } from '@/components/add-star/DrawingCanvas';
 
@@ -121,59 +122,28 @@ export default function Step1Draw() {
                     marginTop: '24px',
                 }}
             >
-                <button
+                <Button
                     type="button"
+                    variant="ghost"
                     disabled={isCanvasBlank}
                     onClick={() => {
                         canvasRef.current?.clearCanvas();
                     }}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: isCanvasBlank ? 'default' : 'pointer',
-                        fontSize: '14px',
-                        color: '#F4F0FF',
-                        opacity: isCanvasBlank ? 0.4 : 1,
-                    }}
                 >
                     ↩ Undo
-                </button>
-                <button
+                </Button>
+
+                <Button
+                    type="button"
+                    variant="primary"
+                    isLoading={isValidating}
+                    className="min-w-[110px]"
                     onClick={() => {
                         void handleContinue();
                     }}
-                    disabled={isValidating}
-                    style={{
-                        background: '#7C5CBF',
-                        color: 'white',
-                        fontSize: '14px',
-                        fontWeight: 500,
-                        padding: '10px 24px',
-                        borderRadius: '9999px',
-                        border: 'none',
-                        cursor: isValidating ? 'not-allowed' : 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '110px',
-                    }}
                 >
-                    {isValidating ? (
-                        <span
-                            style={{
-                                display: 'inline-block',
-                                width: '18px',
-                                height: '18px',
-                                border: '2px solid rgba(255,255,255,0.3)',
-                                borderTopColor: 'white',
-                                borderRadius: '50%',
-                                animation: 'spin 0.7s linear infinite',
-                            }}
-                        />
-                    ) : (
-                        'Continue →'
-                    )}
-                </button>
+                    Continue →
+                </Button>
             </div>
         </div>
     );
