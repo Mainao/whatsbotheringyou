@@ -45,14 +45,18 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
             const newH = canvas.offsetHeight;
             if (canvas.width === newW && canvas.height === newH) return;
 
-            const offscreen = document.createElement('canvas');
-            offscreen.width = canvas.width;
-            offscreen.height = canvas.height;
-            offscreen.getContext('2d')?.drawImage(canvas, 0, 0);
-
-            canvas.width = newW;
-            canvas.height = newH;
-            canvas.getContext('2d')?.drawImage(offscreen, 0, 0, newW, newH);
+            if (canvas.width > 0 && canvas.height > 0) {
+                const offscreen = document.createElement('canvas');
+                offscreen.width = canvas.width;
+                offscreen.height = canvas.height;
+                offscreen.getContext('2d')?.drawImage(canvas, 0, 0);
+                canvas.width = newW;
+                canvas.height = newH;
+                canvas.getContext('2d')?.drawImage(offscreen, 0, 0, newW, newH);
+            } else {
+                canvas.width = newW;
+                canvas.height = newH;
+            }
 
             clearUndoStack();
         };
@@ -97,7 +101,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
                 onMouseUp={endStroke}
                 onMouseLeave={endStroke}
                 onTouchStart={(e) => {
-                    e.preventDefault();
                     const rect = canvasRef.current?.getBoundingClientRect();
                     if (!rect) return;
                     const touch = e.touches[0];
@@ -105,7 +108,6 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
                     startStroke(touch.clientX - rect.left, touch.clientY - rect.top);
                 }}
                 onTouchMove={(e) => {
-                    e.preventDefault();
                     const rect = canvasRef.current?.getBoundingClientRect();
                     if (!rect) return;
                     const touch = e.touches[0];
