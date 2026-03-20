@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 
+type Step = 1 | 2 | 3;
+
 interface ModalStore {
     isOpen: boolean;
-    currentStep: 1 | 2 | 3;
+    currentStep: Step;
     open: () => void;
     close: () => void;
     nextStep: () => void;
@@ -16,11 +18,11 @@ const useModalStore = create<ModalStore>()((set) => ({
     close: () => set({ isOpen: false, currentStep: 1 }),
     nextStep: () =>
         set((state) => ({
-            currentStep: Math.min(state.currentStep + 1, 3) as 1 | 2 | 3,
+            currentStep: Math.min(state.currentStep + 1, 3) as Step,
         })),
     prevStep: () =>
         set((state) => ({
-            currentStep: Math.max(state.currentStep - 1, 1) as 1 | 2 | 3,
+            currentStep: Math.max(state.currentStep - 1, 1) as Step,
         })),
 }));
 
