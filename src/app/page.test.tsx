@@ -95,35 +95,40 @@ describe('Home page', () => {
     });
 
     it('clicking Add Star opens the modal', async () => {
+        const user = userEvent.setup();
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
     it('modal renders a close button when open', async () => {
+        const user = userEvent.setup();
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
         expect(screen.getByRole('button', { name: /close modal/i })).toBeInTheDocument();
     });
 
     it('modal renders step indicator at step 1 when first opened', async () => {
+        const user = userEvent.setup();
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
         const indicator = screen.getByTestId('mock-step-indicator');
         expect(indicator).toBeInTheDocument();
         expect(indicator).toHaveAttribute('data-step', '1');
     });
 
     it('modal renders Step 1 content when first opened', async () => {
+        const user = userEvent.setup();
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
         expect(screen.getByTestId('mock-step1draw')).toBeInTheDocument();
     });
 
     it('clicking close button closes the modal', async () => {
+        const user = userEvent.setup();
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
-        await userEvent.click(screen.getByRole('button', { name: /close modal/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /close modal/i }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
@@ -144,11 +149,12 @@ describe('Home page', () => {
     // --- drawing store reset ---
 
     it('resets drawing store when modal is closed via close button', async () => {
+        const user = userEvent.setup();
         const state = useDrawingStore.getState() as { reset: () => void };
         const resetSpy = vi.spyOn(state, 'reset');
         render(<Home />);
-        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
-        await userEvent.click(screen.getByRole('button', { name: /close modal/i }));
+        await user.click(screen.getByRole('button', { name: /add star/i }));
+        await user.click(screen.getByRole('button', { name: /close modal/i }));
         expect(resetSpy).toHaveBeenCalledOnce();
     });
 });

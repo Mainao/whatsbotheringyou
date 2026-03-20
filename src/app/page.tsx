@@ -50,7 +50,7 @@ export default function Home() {
                     ×
                 </Button>
 
-                <div style={{ marginBottom: '24px' }}>
+                <div className="mb-6">
                     <StepIndicator currentStep={currentStep} />
                 </div>
 

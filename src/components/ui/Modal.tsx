@@ -4,7 +4,7 @@ import { type DialogHTMLAttributes, type ReactNode, useEffect, useRef, useState 
 
 import { cn } from '@/lib/cn';
 
-const CLOSE_DURATION = 280;
+export const CLOSE_DURATION = 280;
 
 interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'onClose'> {
     isOpen: boolean;

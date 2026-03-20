@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
@@ -14,6 +14,7 @@ type MessageType = 'blank' | 'invalid' | '';
 
 export default function Step1Draw() {
     const canvasRef = useRef<DrawingCanvasHandle>(null);
+    const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const nextStep = useModalStore((s) => s.nextStep);
     const setCanvasBlob = useDrawingStore((s) => s.setCanvasBlob);
 
@@ -22,12 +23,23 @@ export default function Step1Draw() {
     const [validationMessage, setValidationMessage] = useState('');
     const [messageType, setMessageType] = useState<MessageType>('');
 
+    useEffect(() => {
+        return () => {
+            if (messageTimerRef.current !== null) {
+                clearTimeout(messageTimerRef.current);
+                messageTimerRef.current = null;
+            }
+        };
+    }, []);
+
     const showMessage = (text: string, type: MessageType, durationMs: number) => {
+        if (messageTimerRef.current !== null) clearTimeout(messageTimerRef.current);
         setValidationMessage(text);
         setMessageType(type);
-        setTimeout(() => {
+        messageTimerRef.current = setTimeout(() => {
             setValidationMessage('');
             setMessageType('');
+            messageTimerRef.current = null;
         }, durationMs);
     };
 
@@ -137,6 +149,7 @@ export default function Step1Draw() {
                     type="button"
                     variant="primary"
                     isLoading={isValidating}
+                    aria-label={isValidating ? 'Validating, please wait' : undefined}
                     className="min-w-[110px]"
                     onClick={() => {
                         void handleContinue();

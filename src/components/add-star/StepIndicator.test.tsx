@@ -3,9 +3,16 @@ import { describe, expect, it } from 'vitest';
 
 import StepIndicator from '@/components/add-star/StepIndicator';
 
+// Expected DOM structure:
+// container.firstElementChild (flex wrapper)
+//   [0] dot  [1] line  [2] dot  [3] line  [4] dot
 function getDots(container: HTMLElement): [HTMLElement, HTMLElement, HTMLElement] {
     const wrapper = container.firstElementChild;
     if (!wrapper) throw new Error('StepIndicator wrapper not found');
+    if (wrapper.children.length < 5)
+        throw new Error(
+            `StepIndicator wrapper must have 5 children, got ${wrapper.children.length}`,
+        );
     return [
         wrapper.children[0] as HTMLElement,
         wrapper.children[2] as HTMLElement,
@@ -13,9 +20,14 @@ function getDots(container: HTMLElement): [HTMLElement, HTMLElement, HTMLElement
     ];
 }
 
+// Expected DOM structure: same as above — lines are at indices 1 and 3.
 function getLines(container: HTMLElement): [HTMLElement, HTMLElement] {
     const wrapper = container.firstElementChild;
     if (!wrapper) throw new Error('StepIndicator wrapper not found');
+    if (wrapper.children.length < 5)
+        throw new Error(
+            `StepIndicator wrapper must have 5 children, got ${wrapper.children.length}`,
+        );
     return [wrapper.children[1] as HTMLElement, wrapper.children[3] as HTMLElement];
 }
 

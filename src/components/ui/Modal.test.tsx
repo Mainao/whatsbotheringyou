@@ -1,9 +1,7 @@
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Modal } from './Modal';
-
-const CLOSE_DURATION = 280;
+import { CLOSE_DURATION, Modal } from './Modal';
 
 const labelId = 'modal-title';
 
