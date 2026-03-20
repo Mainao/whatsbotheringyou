@@ -150,6 +150,47 @@ describe('StepIndicator', () => {
         expect(dot2).toHaveClass('border-text-muted');
     });
 
+    // --- accessibility ---
+
+    it('wrapper has role="group"', () => {
+        const { container } = render(<StepIndicator currentStep={1} />);
+        expect(container.firstElementChild).toHaveAttribute('role', 'group');
+    });
+
+    it('wrapper aria-label reflects currentStep', () => {
+        const { container: c1 } = render(<StepIndicator currentStep={1} />);
+        expect(c1.firstElementChild).toHaveAttribute('aria-label', 'Step 1 of 3');
+
+        const { container: c2 } = render(<StepIndicator currentStep={2} />);
+        expect(c2.firstElementChild).toHaveAttribute('aria-label', 'Step 2 of 3');
+
+        const { container: c3 } = render(<StepIndicator currentStep={3} />);
+        expect(c3.firstElementChild).toHaveAttribute('aria-label', 'Step 3 of 3');
+    });
+
+    it('active dot has aria-current="step"', () => {
+        const { container } = render(<StepIndicator currentStep={2} />);
+        const [dot1, dot2, dot3] = getDots(container);
+        expect(dot1).not.toHaveAttribute('aria-current');
+        expect(dot2).toHaveAttribute('aria-current', 'step');
+        expect(dot3).not.toHaveAttribute('aria-current');
+    });
+
+    it('each dot has an aria-label', () => {
+        const { container } = render(<StepIndicator currentStep={1} />);
+        const [dot1, dot2, dot3] = getDots(container);
+        expect(dot1).toHaveAttribute('aria-label', 'Step 1');
+        expect(dot2).toHaveAttribute('aria-label', 'Step 2');
+        expect(dot3).toHaveAttribute('aria-label', 'Step 3');
+    });
+
+    it('lines are aria-hidden', () => {
+        const { container } = render(<StepIndicator currentStep={1} />);
+        const [line1, line2] = getLines(container);
+        expect(line1).toHaveAttribute('aria-hidden', 'true');
+        expect(line2).toHaveAttribute('aria-hidden', 'true');
+    });
+
     // --- lines ---
 
     it('separator lines have the muted background class', () => {

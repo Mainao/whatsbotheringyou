@@ -19,6 +19,7 @@ export default function useDrawingCanvas(
     canvasRef: React.RefObject<HTMLCanvasElement>,
 ): DrawingCanvasHandle {
     const isDrawing = useRef(false);
+    const didDrawInCurrentStroke = useRef(false);
     const undoStack = useRef<ImageData[]>([]);
     const activeColour = useRef('#9CA3C4');
     const activeSize = useRef(6);
@@ -35,6 +36,7 @@ export default function useDrawingCanvas(
         if (!ctx) return;
 
         isDrawing.current = true;
+        didDrawInCurrentStroke.current = false;
         ctx.beginPath();
         ctx.moveTo(x, y);
         ctx.strokeStyle = activeColour.current;
@@ -50,15 +52,17 @@ export default function useDrawingCanvas(
 
         ctx.lineTo(x, y);
         ctx.stroke();
+        didDrawInCurrentStroke.current = true;
     };
 
     const endStroke = (): void => {
         if (!isDrawing.current) return;
+        isDrawing.current = false;
+        if (!didDrawInCurrentStroke.current) return;
+
         const canvas = canvasRef.current;
         const ctx = getCtx();
         if (!canvas || !ctx) return;
-
-        isDrawing.current = false;
 
         const snapshot = ctx.getImageData(0, 0, canvas.width, canvas.height);
         undoStack.current.push(snapshot);

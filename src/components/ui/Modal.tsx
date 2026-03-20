@@ -26,17 +26,21 @@ const Modal = ({
 }: ModalProps) => {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const [isClosing, setIsClosing] = useState(false);
+    const programmaticCloseRef = useRef(false);
 
     useEffect(() => {
         const dialog = dialogRef.current;
         if (!dialog) return;
 
-        if (isOpen && !dialog.open) {
+        if (isOpen) {
             setIsClosing(false);
-            dialog.showModal();
-        } else if (!isOpen && dialog.open) {
+            if (!dialog.open) {
+                dialog.showModal();
+            }
+        } else if (dialog.open) {
             setIsClosing(true);
             const timer = setTimeout(() => {
+                programmaticCloseRef.current = true;
                 dialog.close();
                 setIsClosing(false);
             }, CLOSE_DURATION);
@@ -47,13 +51,22 @@ const Modal = ({
     useEffect(() => {
         const dialog = dialogRef.current;
         return () => {
-            if (dialog?.open) dialog.close();
+            if (dialog?.open) {
+                programmaticCloseRef.current = true;
+                dialog.close();
+            }
         };
     }, []);
 
     useEffect(() => {
         const dialog = dialogRef.current;
-        const handleClose = () => onClose();
+        const handleClose = () => {
+            if (programmaticCloseRef.current) {
+                programmaticCloseRef.current = false;
+                return;
+            }
+            onClose();
+        };
         dialog?.addEventListener('close', handleClose);
         return () => dialog?.removeEventListener('close', handleClose);
     }, [onClose]);

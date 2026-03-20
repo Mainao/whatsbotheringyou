@@ -1,4 +1,4 @@
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CLOSE_DURATION, Modal } from './Modal';
@@ -29,13 +29,16 @@ describe('Modal', () => {
             this.dispatchEvent(new Event('close'));
         });
 
-        HTMLDialogElement.prototype.showModal = showModalMock;
-        HTMLDialogElement.prototype.close = closeMock;
+        HTMLDialogElement.prototype.showModal =
+            showModalMock as typeof HTMLDialogElement.prototype.showModal;
+        HTMLDialogElement.prototype.close = closeMock as typeof HTMLDialogElement.prototype.close;
     });
 
     afterEach(() => {
         vi.useRealTimers();
-        vi.restoreAllMocks();
+        cleanup();
+        Reflect.deleteProperty(HTMLDialogElement.prototype, 'showModal');
+        Reflect.deleteProperty(HTMLDialogElement.prototype, 'close');
     });
 
     // --- rendering ---

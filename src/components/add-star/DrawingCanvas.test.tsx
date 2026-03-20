@@ -243,6 +243,16 @@ describe('DrawingCanvas', () => {
         expect(ref.current?.strokeCount).toBe(1);
     });
 
+    it('tap without drag does not change isBlank or strokeCount', () => {
+        const ref = createRef<DrawingCanvasHandle>();
+        render(<DrawingCanvas ref={ref} />);
+        const canvas = screen.getByLabelText(/drawing canvas/i);
+        fireEvent.mouseDown(canvas);
+        fireEvent.mouseUp(canvas);
+        expect(ref.current?.isBlank).toBe(true);
+        expect(ref.current?.strokeCount).toBe(0);
+    });
+
     it('mousemove with buttons=0 does not call lineTo', () => {
         render(<DrawingCanvas />);
         const canvas = screen.getByLabelText(/drawing canvas/i);
