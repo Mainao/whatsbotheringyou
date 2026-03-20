@@ -67,7 +67,7 @@ describe('Modal', () => {
 
     it('applies custom maxWidth', () => {
         const { container } = render(
-            <Modal isOpen={true} onClose={vi.fn()} maxWidth={600}>
+            <Modal isOpen={true} onClose={vi.fn()} labelId={labelId} maxWidth={600}>
                 <p>content</p>
             </Modal>,
         );
@@ -76,7 +76,7 @@ describe('Modal', () => {
 
     it('applies custom className', () => {
         render(
-            <Modal isOpen={true} onClose={vi.fn()} className="custom-class">
+            <Modal isOpen={true} onClose={vi.fn()} labelId={labelId} className="custom-class">
                 <p>content</p>
             </Modal>,
         );

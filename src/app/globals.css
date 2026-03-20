@@ -80,8 +80,8 @@ dialog.dialog-closing::backdrop {
 @media (prefers-reduced-motion: reduce) {
     dialog[open],
     dialog[open]::backdrop,
-    dialog.closing,
-    dialog.closing::backdrop {
+    dialog.dialog-closing,
+    dialog.dialog-closing::backdrop {
         animation: none;
     }
 }

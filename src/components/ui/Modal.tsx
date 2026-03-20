@@ -10,7 +10,7 @@ interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'onCl
     isOpen: boolean;
     onClose: () => void;
     children: ReactNode;
-    labelId?: string;
+    labelId: string;
     maxWidth?: number;
     className?: string;
 }

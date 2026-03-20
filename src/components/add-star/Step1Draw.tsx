@@ -137,7 +137,7 @@ export default function Step1Draw() {
                 <Button
                     type="button"
                     variant="ghost"
-                    disabled={isCanvasBlank}
+                    disabled={isCanvasBlank || isValidating}
                     onClick={() => {
                         canvasRef.current?.clearCanvas();
                     }}
