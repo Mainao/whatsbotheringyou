@@ -1,5 +1,5 @@
 interface StepIndicatorProps {
-    currentStep: 1 | 2 | 3;
+    readonly currentStep: 1 | 2 | 3;
 }
 
 function Dot({ active }: { active: boolean }) {
