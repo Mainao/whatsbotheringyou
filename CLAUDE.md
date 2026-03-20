@@ -90,7 +90,7 @@ Type imports are separate and do not affect group ordering.
 
 ## 4. Folder Structure
 
-```
+```text
 src/
 ├── app/
 │   ├── api/
