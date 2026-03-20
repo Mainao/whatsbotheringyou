@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
 
 import Home from './page';
@@ -124,5 +125,30 @@ describe('Home page', () => {
         await userEvent.click(screen.getByRole('button', { name: /add star/i }));
         await userEvent.click(screen.getByRole('button', { name: /close modal/i }));
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    // --- modal steps ---
+
+    it('renders step 2 content when currentStep is 2', () => {
+        useModalStore.setState({ isOpen: true, currentStep: 2 });
+        render(<Home />);
+        expect(screen.getByText(/step 2 coming soon/i)).toBeInTheDocument();
+    });
+
+    it('renders step 3 content when currentStep is 3', () => {
+        useModalStore.setState({ isOpen: true, currentStep: 3 });
+        render(<Home />);
+        expect(screen.getByText(/step 3 coming soon/i)).toBeInTheDocument();
+    });
+
+    // --- drawing store reset ---
+
+    it('resets drawing store when modal is closed via close button', async () => {
+        const state = useDrawingStore.getState() as { reset: () => void };
+        const resetSpy = vi.spyOn(state, 'reset');
+        render(<Home />);
+        await userEvent.click(screen.getByRole('button', { name: /add star/i }));
+        await userEvent.click(screen.getByRole('button', { name: /close modal/i }));
+        expect(resetSpy).toHaveBeenCalledOnce();
     });
 });
