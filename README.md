@@ -66,6 +66,7 @@ The app is built as a multi-step wizard. Step 1 is the drawing canvas with AI va
 4. Fill in the required environment variables (see below).
 
 5. Start the development server:
+
     ```bash
     pnpm dev
     ```
@@ -146,7 +147,7 @@ PRs go to `staging`, not `main`. `main` receives merges from `staging` only.
 
 Conventional commits are enforced by commitlint on every commit.
 
-```
+```text
 feat: add drawing canvas
 fix: correct canvas dpr scaling
 chore: update dependencies
@@ -181,7 +182,7 @@ refactor: extract Button to shared component
 
 ## Project Structure
 
-```
+```text
 src/
   app/              — Next.js App Router: root layout, home page, API routes
     api/            — Server-side API routes (drawing validation via Claude)
