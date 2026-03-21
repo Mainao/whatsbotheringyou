@@ -75,21 +75,21 @@ The app is built as a multi-step wizard. Step 1 is the drawing canvas with AI va
 
 ```bash
 # Database
-DATABASE_URL=""
+DATABASE_URL=
 
 # Anthropic
-ANTHROPIC_API_KEY=""
+ANTHROPIC_API_KEY=
 
 # App URLs
-NEXT_PUBLIC_APP_URL=""
-NEXT_PUBLIC_WS_URL=""
+NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_WS_URL=
 
 # Cloudflare R2
-CLOUDFLARE_R2_ACCOUNT_ID=""
-CLOUDFLARE_R2_ACCESS_KEY_ID=""
-CLOUDFLARE_R2_SECRET_KEY=""
-CLOUDFLARE_R2_BUCKET_NAME=""
-CLOUDFLARE_R2_PUBLIC_URL=""
+CLOUDFLARE_R2_ACCOUNT_ID=
+CLOUDFLARE_R2_ACCESS_KEY_ID=
+CLOUDFLARE_R2_SECRET_KEY=
+CLOUDFLARE_R2_BUCKET_NAME=
+CLOUDFLARE_R2_PUBLIC_URL=
 ```
 
 | Variable                      | Required | Description                                           | Where to get it          |
