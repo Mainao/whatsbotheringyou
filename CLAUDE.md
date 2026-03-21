@@ -1,4 +1,8 @@
-# CLAUDE.md — WhatsBotheringYou
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## WhatsBotheringYou
 
 ## 1. Project Overview
 
@@ -432,7 +436,7 @@ Every file listed here exists and is complete. Do not recreate it.
 ## 13. Current Version and Branch
 
 - **Version**: `0.1.0` (from `package.json`)
-- **Current branch**: `feature/universe-canvas`
+- **Current branch**: `staging`
 - **Main branch**: `main`
 
 ---
