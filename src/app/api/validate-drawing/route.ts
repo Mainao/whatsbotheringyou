@@ -63,6 +63,15 @@ export async function POST(request: Request): Promise<Response> {
         const detail = error instanceof Error ? error.message : String(error);
         // eslint-disable-next-line no-console
         console.error('[validate-drawing]', detail);
+
+        if (error instanceof Error && error.message === 'timeout') {
+            return Response.json({
+                valid: true,
+                error: 'api_timeout',
+                ...(process.env.NODE_ENV === 'development' && { detail }),
+            });
+        }
+
         return Response.json({
             valid: false,
             error: 'api_error',
