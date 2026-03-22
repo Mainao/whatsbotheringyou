@@ -14,7 +14,7 @@ interface DrawingStore {
 
 const DEFAULT_STATE = {
     canvasBlob: null,
-    chosenColour: '#9CA3C4',
+    chosenColour: '#E879A0',
     brushSize: 6,
     worryText: '',
 } as const;
