@@ -31,6 +31,7 @@ const mockCtx = {
 
 let observeSpy: ReturnType<typeof vi.fn>;
 let toBlobSpy: ReturnType<typeof vi.fn>;
+let capturedResizeCallback: (() => void) | null = null;
 
 function simulateStroke(canvas: HTMLElement) {
     fireEvent.mouseDown(canvas);
@@ -61,12 +62,12 @@ describe('DrawingCanvas', () => {
                 callback(new Blob(['test'], { type: 'image/jpeg' }));
             }) as unknown as ReturnType<typeof vi.fn>;
 
+        capturedResizeCallback = null;
         observeSpy = vi.fn();
-        global.ResizeObserver = vi.fn().mockImplementation(() => ({
-            observe: observeSpy,
-            disconnect: vi.fn(),
-            unobserve: vi.fn(),
-        }));
+        global.ResizeObserver = vi.fn().mockImplementation((cb: () => void) => {
+            capturedResizeCallback = cb;
+            return { observe: observeSpy, disconnect: vi.fn(), unobserve: vi.fn() };
+        });
     });
 
     // --- rendering ---
@@ -321,5 +322,88 @@ describe('DrawingCanvas', () => {
         render(<DrawingCanvas ref={ref} />);
         await ref.current?.exportBlob();
         expect(toBlobSpy).toHaveBeenCalledWith(expect.any(Function), 'image/jpeg', 0.6);
+    });
+
+    // --- syncSize (ResizeObserver callback) ---
+
+    it('syncSize does not run initGrid when dimensions are zero on mount', () => {
+        render(<DrawingCanvas />);
+        // jsdom offsetWidth/offsetHeight default to 0 — syncSize early-returns
+        expect(mockCtx.beginPath).not.toHaveBeenCalled();
+    });
+
+    it('syncSize sets canvas dimensions and runs initGrid on first resize', () => {
+        render(<DrawingCanvas />);
+        const canvas = screen.getByLabelText(/drawing canvas/i);
+        Object.defineProperty(canvas, 'offsetWidth', { get: () => 300, configurable: true });
+        Object.defineProperty(canvas, 'offsetHeight', { get: () => 200, configurable: true });
+        act(() => {
+            capturedResizeCallback?.();
+        });
+        // initGrid draws the grid using beginPath/stroke
+        expect(mockCtx.beginPath).toHaveBeenCalled();
+        expect(mockCtx.stroke).toHaveBeenCalled();
+    });
+
+    it('syncSize skips resize when canvas dimensions are already up to date', () => {
+        render(<DrawingCanvas />);
+        const canvas = screen.getByLabelText(/drawing canvas/i);
+        Object.defineProperty(canvas, 'offsetWidth', { get: () => 300, configurable: true });
+        Object.defineProperty(canvas, 'offsetHeight', { get: () => 200, configurable: true });
+        act(() => {
+            capturedResizeCallback?.();
+        });
+        vi.clearAllMocks();
+        // Fire again with the same dimensions — should be a no-op
+        act(() => {
+            capturedResizeCallback?.();
+        });
+        expect(mockCtx.beginPath).not.toHaveBeenCalled();
+    });
+
+    it('syncSize copies the existing bitmap when resizing from non-zero dimensions', () => {
+        render(<DrawingCanvas />);
+        const canvas = screen.getByLabelText(/drawing canvas/i);
+        // First resize: canvas starts at 0×0, else branch sets it to 300×200
+        Object.defineProperty(canvas, 'offsetWidth', { get: () => 300, configurable: true });
+        Object.defineProperty(canvas, 'offsetHeight', { get: () => 200, configurable: true });
+        act(() => {
+            capturedResizeCallback?.();
+        });
+        vi.clearAllMocks();
+        // Second resize to a larger size — canvas.width(300) > 0, triggers bitmap-copy path
+        Object.defineProperty(canvas, 'offsetWidth', { get: () => 400, configurable: true });
+        Object.defineProperty(canvas, 'offsetHeight', { get: () => 300, configurable: true });
+        act(() => {
+            capturedResizeCallback?.();
+        });
+        // The bitmap-copy path calls drawImage to preserve the existing content
+        expect(mockCtx.drawImage).toHaveBeenCalled();
+    });
+
+    // --- setColour via ref ---
+
+    it('setColour via ref updates the drawing colour for subsequent strokes', () => {
+        const ref = createRef<DrawingCanvasHandle>();
+        render(<DrawingCanvas ref={ref} />);
+        act(() => {
+            ref.current?.setColour('#FF0000');
+        });
+        simulateStroke(screen.getByLabelText(/drawing canvas/i));
+        expect(ref.current?.strokeCount).toBe(1);
+        expect(ref.current?.isBlank).toBe(false);
+    });
+
+    // --- touchCancel ---
+
+    it('touchCancel cancels the active stroke without committing it', () => {
+        const ref = createRef<DrawingCanvasHandle>();
+        render(<DrawingCanvas ref={ref} />);
+        const canvas = screen.getByLabelText(/drawing canvas/i);
+        fireEvent.touchStart(canvas, { touches: [{ clientX: 50, clientY: 50 }] });
+        fireEvent.touchMove(canvas, { touches: [{ clientX: 60, clientY: 60 }] });
+        fireEvent.touchCancel(canvas);
+        expect(ref.current?.isBlank).toBe(true);
+        expect(ref.current?.strokeCount).toBe(0);
     });
 });
