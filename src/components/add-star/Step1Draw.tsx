@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { cn } from '@/lib/cn';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
 
@@ -74,38 +75,27 @@ export default function Step1Draw() {
             });
             clearTimeout(timeoutId);
 
-            const data = (await res.json()) as { valid: boolean };
+            const data = (await res.json()) as { valid: boolean; error?: string };
 
             if (data.valid) {
                 setCanvasBlob(exportedBlob);
                 nextStep();
+            } else if (data.error === 'api_error') {
+                showMessage('Something went wrong — please try again.', 'invalid', 4000);
             } else {
                 canvas.clearCanvas();
                 showMessage("That doesn't look like a star — try again!", 'invalid', 3000);
             }
         } catch {
-            // AbortError (8s timeout) and all other errors fail open per spec
-            if (exportedBlob) setCanvasBlob(exportedBlob);
-            nextStep();
+            showMessage('Something went wrong — please try again.', 'invalid', 4000);
         } finally {
             setIsValidating(false);
         }
     };
 
-    const messageColour = messageType === 'invalid' ? '#E879A0' : '#888899';
-
     return (
-        <div>
-            <h2
-                style={{
-                    fontSize: '18px',
-                    fontWeight: 500,
-                    textAlign: 'center',
-                    color: '#F4F0FF',
-                    marginTop: 0,
-                    marginBottom: '20px',
-                }}
-            >
+        <div className="w-full">
+            <h2 className="mt-0 mb-5 text-lg font-medium text-center text-text-primary">
                 Draw your star
             </h2>
 
@@ -113,27 +103,16 @@ export default function Step1Draw() {
 
             <div
                 aria-live="polite"
-                style={{
-                    minHeight: '20px',
-                    marginTop: '8px',
-                    textAlign: 'center',
-                    fontSize: '13px',
-                    color: messageColour,
-                    opacity: validationMessage ? 1 : 0,
-                    transition: 'opacity 0.3s',
-                }}
+                className={cn(
+                    'min-h-5 mt-2 text-center text-[13px] transition-opacity duration-300',
+                    validationMessage ? 'opacity-100' : 'opacity-0',
+                    messageType === 'invalid' ? 'text-white' : 'text-text-muted',
+                )}
             >
                 {validationMessage}
             </div>
 
-            <div
-                style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '24px',
-                }}
-            >
+            <div className="flex w-full justify-between items-center mt-6">
                 <Button
                     type="button"
                     variant="ghost"

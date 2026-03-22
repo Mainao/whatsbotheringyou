@@ -1,18 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 
-const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
 export async function POST(request: Request): Promise<Response> {
     try {
+        const anthropic = new Anthropic({
+            apiKey: process.env.ANTHROPIC_API_KEY,
+        });
+
         const formData = await request.formData();
         const drawing = formData.get('drawing');
 
         if (drawing === null || !(drawing instanceof Blob)) {
-            return Response.json({ valid: true });
+            return Response.json({ valid: false });
         }
 
         if (drawing.size > MAX_FILE_SIZE) {
@@ -33,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
                             type: 'image',
                             source: {
                                 type: 'base64',
-                                media_type: 'image/png',
+                                media_type: 'image/jpeg',
                                 data: base64,
                             },
                         },
@@ -54,14 +54,19 @@ export async function POST(request: Request): Promise<Response> {
 
         const firstBlock = result.content[0];
         if (firstBlock?.type !== 'text') {
-            return Response.json({ valid: true });
+            return Response.json({ valid: false });
         }
 
         const valid = firstBlock.text.toUpperCase().includes('YES');
         return Response.json({ valid });
     } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
         // eslint-disable-next-line no-console
-        console.error('[validate-drawing]', error);
-        return Response.json({ valid: true });
+        console.error('[validate-drawing]', detail);
+        return Response.json({
+            valid: false,
+            error: 'api_error',
+            ...(process.env.NODE_ENV === 'development' && { detail }),
+        });
     }
 }

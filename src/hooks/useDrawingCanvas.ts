@@ -126,13 +126,41 @@ export default function useDrawingCanvas(
                 reject(new Error('Failed to export canvas'));
                 return;
             }
-            canvas.toBlob((blob) => {
-                if (blob) {
-                    resolve(blob);
-                } else {
-                    reject(new Error('Failed to export canvas'));
-                }
-            }, 'image/png');
+
+            const MAX_SIZE = 256;
+            const QUALITY = 0.6;
+
+            const scale = Math.min(MAX_SIZE / canvas.width, MAX_SIZE / canvas.height, 1);
+
+            const width = Math.floor(canvas.width * scale);
+            const height = Math.floor(canvas.height * scale);
+
+            const offscreen = document.createElement('canvas');
+            offscreen.width = width;
+            offscreen.height = height;
+
+            const ctx = offscreen.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Failed to export canvas'));
+                return;
+            }
+
+            ctx.fillStyle = '#0D1117';
+            ctx.fillRect(0, 0, width, height);
+
+            ctx.drawImage(canvas, 0, 0, width, height);
+
+            offscreen.toBlob(
+                (blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Failed to export canvas'));
+                    }
+                },
+                'image/jpeg',
+                QUALITY,
+            );
         });
     };
 
