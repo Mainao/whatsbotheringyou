@@ -305,6 +305,7 @@ describe('DrawingCanvas', () => {
         await ref.current?.exportBlob();
         expect(mockCtx.fillStyle).toBe('#0D1117');
         expect(mockCtx.fillRect).toHaveBeenCalledTimes(1);
+        expect(mockCtx.fillRect).toHaveBeenCalledWith(0, 0, 0, 0);
     });
 
     it('exportBlob calls toBlob with mime type image/jpeg and quality 0.6', async () => {
