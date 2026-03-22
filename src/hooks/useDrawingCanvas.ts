@@ -18,9 +18,9 @@ export interface DrawingCanvasHandle {
 
 function hexToRgba(hex: string, alpha: number): string {
     const cleanHex = hex.replace('#', '');
-    const r = parseInt(cleanHex.substring(0, 2), 16);
-    const g = parseInt(cleanHex.substring(2, 4), 16);
-    const b = parseInt(cleanHex.substring(4, 6), 16);
+    const r = Number.parseInt(cleanHex.substring(0, 2), 16);
+    const g = Number.parseInt(cleanHex.substring(2, 4), 16);
+    const b = Number.parseInt(cleanHex.substring(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
@@ -93,7 +93,7 @@ export default function useDrawingCanvas(
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const snapshot = undoStack.current[undoStack.current.length - 1];
+        const snapshot = undoStack.current.at(-1);
         if (snapshot) {
             const temp = document.createElement('canvas');
             temp.width = canvas.width;
@@ -143,7 +143,7 @@ export default function useDrawingCanvas(
             },
             {
                 width: activeSize.current * 1.2,
-                colour: hexToRgba(activeColour.current, 1.0),
+                colour: hexToRgba(activeColour.current, 1),
                 blur: 0,
                 shadow: 'transparent',
             },
@@ -184,7 +184,7 @@ export default function useDrawingCanvas(
                     const midY = (pt.y + nextPt.y) / 2;
                     ctx.quadraticCurveTo(pt.x, pt.y, midX, midY);
                 }
-                const lastPt = pts[pts.length - 1];
+                const lastPt = pts.at(-1);
                 if (lastPt) {
                     ctx.lineTo(lastPt.x, lastPt.y);
                 }
