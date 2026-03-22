@@ -44,7 +44,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
     };
 });
 
-const mockBlob = new Blob(['drawing'], { type: 'image/png' });
+const mockBlob = new Blob(['drawing'], { type: 'image/jpeg' });
 
 describe('Step1Draw', () => {
     let fetchMock: ReturnType<typeof vi.fn>;
@@ -226,25 +226,37 @@ describe('Step1Draw', () => {
         expect(useModalStore.getState().currentStep).toBe(1);
     });
 
-    // --- error handling (fail-open) ---
+    // --- error handling ---
 
-    it('advances step on fetch network error', async () => {
+    it('shows error message on fetch network error', async () => {
         fetchMock.mockRejectedValueOnce(new Error('network error'));
         render(<Step1Draw />);
         act(() => {
             triggerBlankChange?.(false);
         });
         await userEvent.click(screen.getByRole('button', { name: /continue/i }));
-        await waitFor(() => expect(useModalStore.getState().currentStep).toBe(2));
+        await waitFor(() => expect(screen.getByText(/something went wrong/i)).toBeInTheDocument());
     });
 
-    it('saves blob to store when failing open on fetch error', async () => {
+    it('does not advance step on fetch network error', async () => {
         fetchMock.mockRejectedValueOnce(new Error('network error'));
         render(<Step1Draw />);
         act(() => {
             triggerBlankChange?.(false);
         });
         await userEvent.click(screen.getByRole('button', { name: /continue/i }));
-        await waitFor(() => expect(useDrawingStore.getState().canvasBlob).toBe(mockBlob));
+        await waitFor(() => expect(screen.getByText(/something went wrong/i)).toBeInTheDocument());
+        expect(useModalStore.getState().currentStep).toBe(1);
+    });
+
+    it('does not save blob to store on fetch network error', async () => {
+        fetchMock.mockRejectedValueOnce(new Error('network error'));
+        render(<Step1Draw />);
+        act(() => {
+            triggerBlankChange?.(false);
+        });
+        await userEvent.click(screen.getByRole('button', { name: /continue/i }));
+        await waitFor(() => expect(screen.getByText(/something went wrong/i)).toBeInTheDocument());
+        expect(useDrawingStore.getState().canvasBlob).toBeNull();
     });
 });

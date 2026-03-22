@@ -13,16 +13,19 @@ const mockCtx = {
     lineTo: vi.fn(),
     stroke: vi.fn(),
     clearRect: vi.fn(),
+    fillRect: vi.fn(),
     drawImage: vi.fn(),
     getImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
     putImageData: vi.fn(),
     strokeStyle: '' as string,
+    fillStyle: '' as string,
     lineWidth: 0,
     lineCap: '' as string,
     lineJoin: '' as string,
 };
 
 let observeSpy: ReturnType<typeof vi.fn>;
+let toBlobSpy: ReturnType<typeof vi.fn>;
 
 function simulateStroke(canvas: HTMLElement) {
     fireEvent.mouseDown(canvas);
@@ -39,14 +42,17 @@ describe('DrawingCanvas', () => {
             height: 1,
         });
         mockCtx.strokeStyle = '';
+        mockCtx.fillStyle = '';
         mockCtx.lineWidth = 0;
 
         vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
             mockCtx as unknown as CanvasRenderingContext2D,
         );
-        vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation((callback) => {
-            callback(new Blob(['test'], { type: 'image/png' }));
-        });
+        toBlobSpy = vi
+            .spyOn(HTMLCanvasElement.prototype, 'toBlob')
+            .mockImplementation((callback) => {
+                callback(new Blob(['test'], { type: 'image/jpeg' }));
+            }) as unknown as ReturnType<typeof vi.fn>;
 
         observeSpy = vi.fn();
         global.ResizeObserver = vi.fn().mockImplementation(() => ({
@@ -291,5 +297,20 @@ describe('DrawingCanvas', () => {
         render(<DrawingCanvas ref={ref} />);
         const blob = await ref.current?.exportBlob();
         expect(blob).toBeInstanceOf(Blob);
+    });
+
+    it('exportBlob fills the offscreen canvas background with #0D1117', async () => {
+        const ref = createRef<DrawingCanvasHandle>();
+        render(<DrawingCanvas ref={ref} />);
+        await ref.current?.exportBlob();
+        expect(mockCtx.fillStyle).toBe('#0D1117');
+        expect(mockCtx.fillRect).toHaveBeenCalledTimes(1);
+    });
+
+    it('exportBlob calls toBlob with mime type image/jpeg and quality 0.6', async () => {
+        const ref = createRef<DrawingCanvasHandle>();
+        render(<DrawingCanvas ref={ref} />);
+        await ref.current?.exportBlob();
+        expect(toBlobSpy).toHaveBeenCalledWith(expect.any(Function), 'image/jpeg', 0.6);
     });
 });

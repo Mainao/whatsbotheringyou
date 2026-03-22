@@ -1,5 +1,7 @@
 'use client';
 
+import { Star, X } from 'lucide-react';
+
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
 
@@ -33,7 +35,7 @@ export default function Home() {
                 onClick={open}
                 className="fixed top-4 left-4 z-20 gap-1.5 px-[18px] py-[10px] bg-bg-surface/80 border-brand/40 backdrop-blur hover:border-brand/80 hover:bg-bg-raised/85"
             >
-                <span className="text-[11px] leading-none">✦</span>
+                <Star size={14} />
                 Add Star
             </Button>
 
@@ -47,7 +49,7 @@ export default function Home() {
                     onClick={handleClose}
                     className="absolute top-3 right-3 text-text-muted hover:text-text-primary"
                 >
-                    ×
+                    <X size={24} />
                 </Button>
 
                 <div className="mb-6">
