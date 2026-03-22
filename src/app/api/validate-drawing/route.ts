@@ -54,7 +54,7 @@ export async function POST(request: Request): Promise<Response> {
 
         const firstBlock = result.content[0];
         if (firstBlock?.type !== 'text') {
-            return Response.json({ valid: false });
+            return Response.json({ valid: true, error: 'invalid_response' });
         }
 
         const valid = firstBlock.text.toUpperCase().includes('YES');
