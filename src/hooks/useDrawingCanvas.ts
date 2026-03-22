@@ -239,7 +239,11 @@ export default function useDrawingCanvas(
     };
 
     const cancelStroke = (): void => {
+        if (!isDrawing.current) return;
         isDrawing.current = false;
+        points.current = [];
+        didDrawInCurrentStroke.current = false;
+        restoreCanvas();
     };
 
     const clearUndoStack = useCallback((): void => {

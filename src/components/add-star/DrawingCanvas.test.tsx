@@ -383,15 +383,58 @@ describe('DrawingCanvas', () => {
 
     // --- setColour via ref ---
 
-    it('setColour via ref updates the drawing colour for subsequent strokes', () => {
+    it('setColour via ref applies the new colour to the canvas context during a stroke', () => {
         const ref = createRef<DrawingCanvasHandle>();
         render(<DrawingCanvas ref={ref} />);
-        act(() => {
-            ref.current?.setColour('#FF0000');
+
+        const strokeStyleValues: string[] = [];
+        const shadowColorValues: string[] = [];
+        Object.defineProperty(mockCtx, 'strokeStyle', {
+            set(v: string) {
+                strokeStyleValues.push(v);
+            },
+            get() {
+                return strokeStyleValues[strokeStyleValues.length - 1] ?? '';
+            },
+            configurable: true,
         });
-        simulateStroke(screen.getByLabelText(/drawing canvas/i));
-        expect(ref.current?.strokeCount).toBe(1);
-        expect(ref.current?.isBlank).toBe(false);
+        Object.defineProperty(mockCtx, 'shadowColor', {
+            set(v: string) {
+                shadowColorValues.push(v);
+            },
+            get() {
+                return shadowColorValues[shadowColorValues.length - 1] ?? '';
+            },
+            configurable: true,
+        });
+
+        try {
+            act(() => {
+                ref.current?.setColour('#FF0000');
+            });
+            simulateStroke(screen.getByLabelText(/drawing canvas/i));
+
+            // Layer 2 (core stroke) sets strokeStyle to the active colour at full opacity
+            expect(strokeStyleValues).toContain('rgba(255, 0, 0, 1)');
+            // Layer 1 (glow) sets shadowColor to the active colour
+            expect(shadowColorValues).toContain('#FF0000');
+            expect(ref.current?.strokeCount).toBe(1);
+            expect(ref.current?.isBlank).toBe(false);
+        } finally {
+            // Restore plain writable properties so subsequent tests are unaffected
+            Object.defineProperty(mockCtx, 'strokeStyle', {
+                value: '',
+                writable: true,
+                configurable: true,
+                enumerable: true,
+            });
+            Object.defineProperty(mockCtx, 'shadowColor', {
+                value: '',
+                writable: true,
+                configurable: true,
+                enumerable: true,
+            });
+        }
     });
 
     // --- touchCancel ---

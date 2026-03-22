@@ -7,7 +7,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/cn';
 
 const colourSwatchVariants = cva(
-    'h-8 w-8 cursor-pointer rounded-full transition-transform duration-150 hover:scale-110 sm:h-9 sm:w-9',
+    'h-full w-full cursor-pointer rounded-full transition-transform duration-150 hover:scale-110',
 );
 
 export interface ColourSwatchProps
@@ -25,7 +25,7 @@ export function ColourSwatch({
     ...props
 }: Readonly<ColourSwatchProps>) {
     return (
-        <div className="flex min-h-[44px] min-w-[44px] items-center justify-center">
+        <div className="flex h-11 w-11 items-center justify-center">
             <button
                 type="button"
                 aria-label={label}
