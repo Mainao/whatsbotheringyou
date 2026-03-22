@@ -6,6 +6,7 @@ const nextConfig = {
     },
     experimental: {
         typedRoutes: true,
+        esmExternals: true,
     },
 };
 

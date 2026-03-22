@@ -8,6 +8,7 @@
         "start": "next start",
         "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
         "lint:fix": "eslint . --ext .ts,.tsx --fix",
+        "lint:a11y": "eslint src --ext .ts,.tsx --max-warnings 0",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "type-check": "tsc --noEmit",
@@ -72,5 +73,16 @@
     "engines": {
         "node": ">=20.0.0 <21.0.0",
         "pnpm": ">=9.0.0"
+    },
+    "browserslist": {
+        "production": [
+            "last 2 Chrome versions",
+            "last 2 Firefox versions",
+            "last 2 Edge versions",
+            "last 2 Safari versions"
+        ],
+        "development": [
+            "last 1 Chrome version"
+        ]
     }
 }
