@@ -23,7 +23,7 @@ export function ColourSwatch({
     isSelected,
     className,
     ...props
-}: ColourSwatchProps) {
+}: Readonly<ColourSwatchProps>) {
     return (
         <div className="flex min-h-[44px] min-w-[44px] items-center justify-center">
             <button

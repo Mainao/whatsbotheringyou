@@ -1,12 +1,10 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ColourSwatch } from '@/components/add-star/ColourSwatch';
 
 describe('ColourSwatch', () => {
-    beforeEach(() => {});
-
     afterEach(() => {
         vi.restoreAllMocks();
         vi.unstubAllGlobals();

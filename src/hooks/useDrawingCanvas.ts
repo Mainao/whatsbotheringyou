@@ -82,20 +82,16 @@ export default function useDrawingCanvas(
         [canvasRef],
     );
 
-    // Restores the canvas to its last committed state with the grid always
-    // visible underneath strokes. Uses a temp canvas so putImageData never
-    // writes directly to the main canvas (which would erase the grid layer).
+    // Restores the canvas to its last committed state. Uses a temp canvas so
+    // putImageData never writes directly to the main canvas. Snapshots include
+    // the grid layer, so when one exists the grid must not be drawn separately
+    // (doing so would double-composite the grid, doubling its opacity).
     const restoreCanvas = (): void => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d') ?? null;
         if (!canvas || !ctx) return;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const grid = gridCanvasRef.current;
-        if (grid && grid.width > 0 && grid.height > 0) {
-            ctx.drawImage(grid, 0, 0);
-        }
 
         const snapshot = undoStack.current[undoStack.current.length - 1];
         if (snapshot) {
@@ -106,6 +102,11 @@ export default function useDrawingCanvas(
             if (tempCtx) {
                 tempCtx.putImageData(snapshot, 0, 0);
                 ctx.drawImage(temp, 0, 0);
+            }
+        } else {
+            const grid = gridCanvasRef.current;
+            if (grid && grid.width > 0 && grid.height > 0) {
+                ctx.drawImage(grid, 0, 0);
             }
         }
     };

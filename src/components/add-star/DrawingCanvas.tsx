@@ -80,8 +80,12 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
 
     useEffect(() => {
         setColour(chosenColour);
+    }, [setColour, chosenColour]);
+
+    useEffect(() => {
         setSize(6);
-    }, [setColour, setSize, chosenColour]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useImperativeHandle(ref, () => ({
         isBlank,

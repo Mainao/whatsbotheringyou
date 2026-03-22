@@ -1,3 +1,5 @@
+# Write Tests Command
+
 Write comprehensive Vitest tests for: $ARGUMENTS
 
 Before writing read:
@@ -7,15 +9,13 @@ Before writing read:
 - src/test/setup.ts
   ...
 
-```
-
 ---
 
 ## If Custom Commands Still Do Not Work
 
 Just paste the prompt directly into Claude Code instead. It works exactly the same way — just replace `$ARGUMENTS` with the actual file path manually:
-```
 
+```markdown
 Write comprehensive Vitest tests for:
 src/components/add-star/ColourSwatch.tsx
 
@@ -49,14 +49,14 @@ After writing:
 
 Return the complete test file in full.
 Do not truncate anything.
-
 ```
 
 ---
 
 ## Why Direct Prompts Are Actually Better
-```
 
-Custom commands → convenient shortcut
-Direct prompts → more control, always works,
-can customise per file type
+```text
+Custom commands  → convenient shortcut
+Direct prompts   → more control, always works,
+                   can customise per file type
+```
