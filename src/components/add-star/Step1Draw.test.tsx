@@ -44,7 +44,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
     };
 });
 
-const mockBlob = new Blob(['drawing'], { type: 'image/png' });
+const mockBlob = new Blob(['drawing'], { type: 'image/jpeg' });
 
 describe('Step1Draw', () => {
     let fetchMock: ReturnType<typeof vi.fn>;

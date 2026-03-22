@@ -51,7 +51,7 @@ describe('DrawingCanvas', () => {
         toBlobSpy = vi
             .spyOn(HTMLCanvasElement.prototype, 'toBlob')
             .mockImplementation((callback) => {
-                callback(new Blob(['test'], { type: 'image/png' }));
+                callback(new Blob(['test'], { type: 'image/jpeg' }));
             }) as unknown as ReturnType<typeof vi.fn>;
 
         observeSpy = vi.fn();
