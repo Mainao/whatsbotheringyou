@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { Undo2, MoveRight } from 'lucide-react';
+
 import { cn } from '@/lib/cn';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
@@ -121,7 +123,8 @@ export default function Step1Draw() {
                         canvasRef.current?.clearCanvas();
                     }}
                 >
-                    ↩ Undo
+                    <Undo2 size={14} />
+                    Undo
                 </Button>
 
                 <Button
@@ -134,7 +137,8 @@ export default function Step1Draw() {
                         void handleContinue();
                     }}
                 >
-                    Continue →
+                    Continue
+                    <MoveRight size={14} />
                 </Button>
             </div>
         </div>
