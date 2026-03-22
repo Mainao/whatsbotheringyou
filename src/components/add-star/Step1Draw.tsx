@@ -4,10 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Undo2, MoveRight } from 'lucide-react';
 
+import { STAR_COLOURS } from '@/constants/colours';
+
 import { cn } from '@/lib/cn';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
 
+import { ColourSwatch } from '@/components/add-star/ColourSwatch';
 import DrawingCanvas from '@/components/add-star/DrawingCanvas';
 import { Button } from '@/components/ui/Button';
 
@@ -18,8 +21,11 @@ type MessageType = 'blank' | 'invalid' | '';
 export default function Step1Draw() {
     const canvasRef = useRef<DrawingCanvasHandle>(null);
     const messageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isOpen = useModalStore((s) => s.isOpen);
     const nextStep = useModalStore((s) => s.nextStep);
     const setCanvasBlob = useDrawingStore((s) => s.setCanvasBlob);
+    const chosenColour = useDrawingStore((s) => s.chosenColour);
+    const setChosenColour = useDrawingStore((s) => s.setChosenColour);
 
     const [isCanvasBlank, setIsCanvasBlank] = useState(true);
     const [isValidating, setIsValidating] = useState(false);
@@ -34,6 +40,12 @@ export default function Step1Draw() {
             }
         };
     }, []);
+
+    useEffect(() => {
+        if (!isOpen) {
+            canvasRef.current?.clearCanvas();
+        }
+    }, [isOpen]);
 
     const showMessage = (text: string, type: MessageType, durationMs: number) => {
         if (messageTimerRef.current !== null) clearTimeout(messageTimerRef.current);
@@ -102,6 +114,21 @@ export default function Step1Draw() {
             </h2>
 
             <DrawingCanvas ref={canvasRef} onBlankChange={setIsCanvasBlank} />
+
+            <div className="mt-4 flex justify-center gap-2">
+                {STAR_COLOURS.map((colour) => (
+                    <ColourSwatch
+                        key={colour.id}
+                        colour={colour.hex}
+                        label={colour.label}
+                        isSelected={chosenColour === colour.hex}
+                        onClick={() => {
+                            setChosenColour(colour.hex);
+                            canvasRef.current?.setColour(colour.hex);
+                        }}
+                    />
+                ))}
+            </div>
 
             <div
                 aria-live="polite"

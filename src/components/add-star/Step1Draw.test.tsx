@@ -52,7 +52,7 @@ describe('Step1Draw', () => {
     beforeEach(() => {
         vi.resetAllMocks();
         triggerBlankChange = undefined;
-        useModalStore.getState().close();
+        useModalStore.getState().open();
         useDrawingStore.getState().reset();
 
         mocks.exportBlob.mockResolvedValue(mockBlob);

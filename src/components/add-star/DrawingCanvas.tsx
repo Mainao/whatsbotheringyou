@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
 import useDrawingCanvas from '@/hooks/useDrawingCanvas';
+import useDrawingStore from '@/store/useDrawingStore';
 
 export interface DrawingCanvasHandle {
     isBlank: boolean;
@@ -10,6 +11,7 @@ export interface DrawingCanvasHandle {
     exportBlob: () => Promise<Blob>;
     clearCanvas: () => void;
     undo: () => void;
+    setColour: (hex: string) => void;
 }
 
 interface DrawingCanvasProps {
@@ -21,6 +23,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
     ref,
 ) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const chosenColour = useDrawingStore((s) => s.chosenColour);
     const {
         startStroke,
         continueStroke,
@@ -30,6 +33,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         exportBlob,
         clearCanvas,
         clearUndoStack,
+        initGrid,
         isBlank,
         strokeCount,
         setColour,
@@ -43,6 +47,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         const syncSize = () => {
             const newW = canvas.offsetWidth;
             const newH = canvas.offsetHeight;
+            if (newW === 0 || newH === 0) return;
             if (canvas.width === newW && canvas.height === newH) return;
 
             if (canvas.width > 0 && canvas.height > 0) {
@@ -58,6 +63,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
                 canvas.height = newH;
             }
 
+            initGrid(newW, newH);
             clearUndoStack();
         };
 
@@ -66,16 +72,16 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         const ro = new ResizeObserver(syncSize);
         ro.observe(canvas);
         return () => ro.disconnect();
-    }, [clearUndoStack]);
+    }, [clearUndoStack, initGrid]);
 
     useEffect(() => {
         onBlankChange?.(isBlank);
     }, [isBlank, onBlankChange]);
 
     useEffect(() => {
-        setColour('#FFFFFF');
+        setColour(chosenColour);
         setSize(6);
-    }, [setColour, setSize]);
+    }, [setColour, setSize, chosenColour]);
 
     useImperativeHandle(ref, () => ({
         isBlank,
@@ -83,6 +89,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         exportBlob,
         clearCanvas,
         undo,
+        setColour,
     }));
 
     return (
