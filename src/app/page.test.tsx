@@ -37,6 +37,10 @@ vi.mock('@/components/add-star/Step1Draw', () => ({
     default: () => <div data-testid="mock-step1draw" />,
 }));
 
+vi.mock('@/components/add-star/Step2WriteText', () => ({
+    default: () => <div data-testid="mock-step2writetext" />,
+}));
+
 describe('Home page', () => {
     beforeEach(() => {
         useModalStore.getState().close();
@@ -122,7 +126,7 @@ describe('Home page', () => {
     it('renders step 2 content when currentStep is 2', () => {
         useModalStore.setState({ isOpen: true, currentStep: 2 });
         render(<Home />);
-        expect(screen.getByText(/step 2 coming soon/i)).toBeInTheDocument();
+        expect(screen.getByTestId('mock-step2writetext')).toBeInTheDocument();
     });
 
     it('renders step 3 content when currentStep is 3', () => {

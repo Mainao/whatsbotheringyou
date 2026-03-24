@@ -11,6 +11,7 @@ import Step1Draw from '@/components/add-star/Step1Draw';
 
 const mocks = vi.hoisted(() => ({
     exportBlob: vi.fn(),
+    exportTransparentBlob: vi.fn(),
     clearCanvas: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
         isBlank: boolean;
         strokeCount: number;
         exportBlob: () => Promise<Blob>;
+        exportTransparentBlob: () => Promise<Blob>;
         clearCanvas: () => void;
         undo: () => void;
     };
@@ -36,6 +38,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
                 isBlank: true,
                 strokeCount: 0,
                 exportBlob: mocks.exportBlob as () => Promise<Blob>,
+                exportTransparentBlob: mocks.exportTransparentBlob as () => Promise<Blob>,
                 clearCanvas: mocks.clearCanvas as () => void,
                 undo: vi.fn() as () => void,
             }));
@@ -56,6 +59,7 @@ describe('Step1Draw', () => {
         useDrawingStore.getState().reset();
 
         mocks.exportBlob.mockResolvedValue(mockBlob);
+        mocks.exportTransparentBlob.mockResolvedValue(mockBlob);
 
         fetchMock = vi.fn().mockResolvedValue({
             json: () => Promise.resolve({ valid: true }),
