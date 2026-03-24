@@ -33,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
                             type: 'image',
                             source: {
                                 type: 'base64',
-                                media_type: 'image/png',
+                                media_type: 'image/jpeg',
                                 data: base64,
                             },
                         },
