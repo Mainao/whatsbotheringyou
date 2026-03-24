@@ -106,9 +106,10 @@ src/
 │   └── page.test.tsx                   # Home page tests
 ├── components/
 │   ├── add-star/                       # Multi-step "Add Star" modal flow
+│   │   ├── ColourSwatch.tsx            # Colour picker button used in Step 1
 │   │   ├── DrawingCanvas.tsx           # forwardRef canvas component
 │   │   ├── Step1Draw.tsx               # Step 1 UI — drawing + validation
-│   │   └── StepIndicator.tsx           # 3-dot step indicator
+│   │   └── Step2WriteText.tsx          # Step 2 UI — worry text input
 │   ├── universe/                       # Background star field
 │   │   ├── AmbientStars.tsx            # Canvas — 180–220 pulsing ambient stars
 │   │   ├── ShootingStar.tsx            # Canvas — periodic shooting star animation
@@ -169,8 +170,10 @@ Five options as `{ id, hex, label }` tuples — pink `#E879A0`, blue `#79C4E8`, 
 
 ### Typography
 
-- Font: Inter (Google Fonts via `next/font/google`), weights 400 and 500, CSS variable `--font-inter`
-- Fallback: `system-ui, sans-serif`
+- Body font: Quicksand (Google Fonts via `next/font/google`), weights 400/500/600, CSS variable `--font-quicksand`, Tailwind class `font-sans`
+- Heading font: Fredoka (Google Fonts via `next/font/google`), weights 400/500/600, CSS variable `--font-fredoka`, Tailwind class `font-heading`
+- Both variables are injected on `<body>` in `src/app/layout.tsx`
+- Apply `font-heading` explicitly on `<h1>`–`<h6>` elements; body text inherits `font-sans` automatically
 
 ### Animation Constants (`src/constants/animation.ts`)
 
@@ -206,7 +209,7 @@ Required on any component that uses hooks, browser APIs, or event handlers:
 - `Modal.tsx` — uses `useEffect`, `useRef`, `useState`
 - `page.tsx` — uses Zustand hooks
 
-NOT required on: `UniverseCanvas.tsx`, `PresenceCounter.tsx`, `StepIndicator.tsx` (pure rendering, no hooks).
+NOT required on: `UniverseCanvas.tsx`, `PresenceCounter.tsx` (pure rendering, no hooks).
 
 ### `forwardRef` pattern
 
@@ -292,6 +295,8 @@ Always use `create<StoreType>()()` (double call) — required for Zustand v5 wit
 
 **Model in use**: `claude-haiku-4-5-20251001`
 
+**Dev mock**: In `NODE_ENV === 'development'` the route returns `{ valid: true }` immediately without calling the Anthropic API.
+
 ---
 
 ## 9. Environment Variables
@@ -306,23 +311,12 @@ No `NEXT_PUBLIC_` variables exist. No client-side environment variables are used
 
 ---
 
-## 10. Commands
+## 10. After Every Code Change
 
-| Command              | What it does                                                         |
-| -------------------- | -------------------------------------------------------------------- |
-| `pnpm dev`           | Start Next.js dev server                                             |
-| `pnpm build`         | Production build                                                     |
-| `pnpm start`         | Start production server                                              |
-| `pnpm lint`          | ESLint on all `.ts`/`.tsx` files, zero warnings allowed              |
-| `pnpm lint:fix`      | ESLint with auto-fix                                                 |
-| `pnpm format`        | Prettier write on all files                                          |
-| `pnpm format:check`  | Prettier check (no write) — used in CI                               |
-| `pnpm type-check`    | `tsc --noEmit` — TypeScript check with no output                     |
-| `pnpm test`          | Vitest in watch mode                                                 |
-| `pnpm test:run`      | Vitest single run, no watch                                          |
-| `pnpm test:coverage` | Vitest with v8 coverage, outputs text + lcov                         |
-| `pnpm check`         | Runs `type-check` + `lint` + `format:check` + `test:run` in sequence |
-| `pnpm prepare`       | Installs Husky hooks (runs automatically after `pnpm install`)       |
+After making any code change, always run these two commands in order:
+
+1. `pnpm format` — formats all files with Prettier
+2. `pnpm check` — runs `type-check` + `lint` + `format:check` + `test:run` in sequence to catch any compilation errors or code quality issues
 
 ---
 
@@ -373,9 +367,9 @@ Every file listed here exists and is complete. Do not recreate it.
 
 ### App
 
-- `src/app/layout.tsx` — root layout with Inter font and metadata
+- `src/app/layout.tsx` — root layout with Quicksand + Fredoka fonts and metadata
 - `src/app/page.tsx` — home page: canvas, Add Star button, modal, presence counter
-- `src/app/page.test.tsx` — 7 tests for Home page
+- `src/app/page.test.tsx` — Home page tests
 - `src/app/globals.css` — global styles, all dialog/star keyframes, Tailwind directives
 
 ### API
@@ -396,9 +390,10 @@ Every file listed here exists and is complete. Do not recreate it.
 
 ### Components — Add Star
 
+- `src/components/add-star/ColourSwatch.tsx` — CVA colour picker button; used in Step 1
 - `src/components/add-star/DrawingCanvas.tsx` — forwardRef canvas with ResizeObserver
-- `src/components/add-star/Step1Draw.tsx` — drawing UI, AI validation, undo/continue buttons
-- `src/components/add-star/StepIndicator.tsx` — 3-dot step indicator
+- `src/components/add-star/Step1Draw.tsx` — drawing UI, AI validation, colour picker, undo/continue
+- `src/components/add-star/Step2WriteText.tsx` — worry text textarea, star preview, continue button
 
 ### Components — UI
 
@@ -436,7 +431,7 @@ Every file listed here exists and is complete. Do not recreate it.
 ## 13. Current Version and Branch
 
 - **Version**: `0.1.0` (from `package.json`)
-- **Current branch**: `staging`
+- **Current branch**: `feature/add-star-modal`
 - **Main branch**: `main`
 
 ---
@@ -446,19 +441,18 @@ Every file listed here exists and is complete. Do not recreate it.
 ### Done
 
 - **View universe canvas** — `UniverseCanvas` renders a full-screen dark star field with ambient pulsing stars (180–220) and a periodic shooting star
-- **Open Add Star modal** — `Button` (variant="secondary") in `page.tsx` calls `useModalStore.open()`; modal appears with CSS open animation
-- **Step indicator** — `StepIndicator` renders 3-dot progress indicator; active dot is `#7C5CBF`, inactive is outlined `#888899`
-- **Draw a star (Step 1)** — `DrawingCanvas` provides a `260px` tall canvas with mouse and touch support, white stroke, crosshair cursor, `ResizeObserver` bitmap sync
-- **Undo drawing** — ↩ Undo button calls `clearCanvas()`; disabled when canvas is blank; cursor is `default` when disabled
-- **AI validate drawing** — `Step1Draw` POSTs canvas blob to `/api/validate-drawing`; invalid drawings show error message and clear canvas; AbortController 8s client timeout; fails open
-- **Close modal** — × button (using `Button variant="icon"`) calls `handleClose` which calls `close()` + `reset()`; modal plays CSS close animation before `dialog.close()`
+- **Open Add Star modal** — `Button` (variant="secondary") fixed top-right in `page.tsx` calls `useModalStore.open()`; modal appears with CSS open animation
+- **Draw a star (Step 1)** — `DrawingCanvas` provides a `260px` tall canvas with mouse and touch support, multi-layer glow stroke, colour picker (`ColourSwatch`), `ResizeObserver` bitmap sync
+- **Undo drawing** — Undo button calls `clearCanvas()`; disabled when canvas is blank
+- **AI validate drawing** — `Step1Draw` POSTs canvas PNG blob to `/api/validate-drawing`; invalid drawings show error message and clear canvas; AbortController 8s client timeout; fails open; returns `{ valid: true }` immediately in development
+- **Write worry text (Step 2)** — `Step2WriteText` shows the drawn star preview, a textarea (280-char limit with counter), and a Continue button
+- **Close modal** — × button calls `handleClose` which calls `close()` + `reset()`; modal plays CSS close animation before `dialog.close()`
 - **Presence counter** — `PresenceCounter` renders "N stars in the galaxy" fixed at bottom-centre; currently hardcoded to 0
-- **Reusable Button** — CVA-based `Button` component used in `page.tsx` (Add Star, Close) for all buttons
-- **Reusable Modal** — Native `<dialog>` `Modal` component with open/close CSS animations; used directly in `page.tsx`
+- **Reusable Button** — CVA-based `Button` with variants: primary, secondary, ghost, icon; sizes: sm, md, lg; `isLoading` spinner
+- **Reusable Modal** — Native `<dialog>` with open/close CSS animations, consistent `minHeight`, `open:flex` to avoid overriding browser `display:none`
 
 ### Not Yet Built
 
-- **Step 2** — placeholder "Step 2 coming soon" in `page.tsx`
 - **Step 3** — placeholder "Step 3 coming soon" in `page.tsx`
 - **Star placed in universe** — no persistence or real-time updates yet; `PresenceCounter` count is hardcoded to `0`
 - **Star detail view** — `src/components/star-detail/` is empty placeholder
@@ -494,7 +488,7 @@ Rules Claude Code must follow in this project:
 
 11. **Do not use Framer Motion for modal animations** — the modal uses CSS keyframes and `setTimeout`. `framer-motion` is installed but not used for the modal.
 
-12. **Do not add `'use client'` to components that don't need it** — `UniverseCanvas`, `PresenceCounter`, and `StepIndicator` are server-compatible; keep them that way.
+12. **Do not add `'use client'` to components that don't need it** — `UniverseCanvas` and `PresenceCounter` are server-compatible; keep them that way.
 
 13. **Do not call `dialog.close()` immediately on `isOpen → false`** — always let the closing animation play first. `Modal.tsx` uses `CLOSE_DURATION = 280` ms `setTimeout` before calling `dialog.close()`.
 
@@ -502,7 +496,7 @@ Rules Claude Code must follow in this project:
 
 15. **Do not rebuild any file listed in section 12** — read the existing file first; only extend or modify it.
 
-16. **Do not use `pnpm check` as a shortcut during development** — run `pnpm type-check`, `pnpm lint`, and `pnpm test:run` individually to isolate failures.
+16. **When `pnpm check` fails, isolate the failure** — run `pnpm type-check`, `pnpm lint`, and `pnpm test:run` individually to pinpoint which step is broken rather than re-running the full suite blindly.
 
 17. **Do not create `.md` documentation files** unless explicitly requested. This file (`CLAUDE.md`) is the single exception.
 

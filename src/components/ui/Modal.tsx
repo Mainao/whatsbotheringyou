@@ -12,6 +12,7 @@ interface ModalProps extends Omit<DialogHTMLAttributes<HTMLDialogElement>, 'onCl
     children: ReactNode;
     labelId: string;
     maxWidth?: number;
+    minHeight?: number;
     className?: string;
 }
 
@@ -21,6 +22,7 @@ const Modal = ({
     children,
     labelId,
     maxWidth = 440,
+    minHeight = 520,
     className,
     ...props
 }: ModalProps) => {
@@ -85,11 +87,11 @@ const Modal = ({
             ref={dialogRef}
             aria-labelledby={labelId}
             className={cn(
-                'w-[calc(100%-32px)] rounded-2xl border-0 bg-bg-surface py-8 px-7 text-text-primary outline-none',
+                'open:flex open:flex-col w-[calc(100%-32px)] rounded-2xl border-0 bg-bg-surface py-8 px-7 text-text-primary outline-none',
                 isClosing ? 'dialog-closing' : 'dialog-opening',
                 className,
             )}
-            style={{ maxWidth }}
+            style={{ maxWidth, minHeight }}
             {...props}
         >
             {children}

@@ -7,6 +7,7 @@ export interface DrawingCanvasHandle {
     cancelStroke: () => void;
     undo: () => void;
     exportBlob: () => Promise<Blob>;
+    exportTransparentBlob: () => Promise<Blob>;
     clearCanvas: () => void;
     clearUndoStack: () => void;
     initGrid: (width: number, height: number) => void;
@@ -14,6 +15,39 @@ export interface DrawingCanvasHandle {
     strokeCount: number;
     setColour: (hex: string) => void;
     setSize: (px: number) => void;
+}
+
+const EXPORT_ERROR = 'Failed to export canvas';
+const EXPORT_MAX_SIZE = 256;
+
+function createScaledCanvas(source: HTMLCanvasElement): {
+    offscreen: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    width: number;
+    height: number;
+} | null {
+    const scale = Math.min(EXPORT_MAX_SIZE / source.width, EXPORT_MAX_SIZE / source.height, 1);
+    const width = Math.floor(source.width * scale);
+    const height = Math.floor(source.height * scale);
+    const offscreen = document.createElement('canvas');
+    offscreen.width = width;
+    offscreen.height = height;
+    const ctx = offscreen.getContext('2d');
+    if (!ctx) return null;
+    return { offscreen, ctx, width, height };
+}
+
+function toBlobPromise(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+        canvas.toBlob(
+            (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error(EXPORT_ERROR));
+            },
+            type,
+            quality,
+        );
+    });
 }
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -265,48 +299,78 @@ export default function useDrawingCanvas(
     };
 
     const exportBlob = (): Promise<Blob> => {
-        return new Promise((resolve, reject) => {
-            const canvas = canvasRef.current;
-            if (!canvas) {
-                reject(new Error('Failed to export canvas'));
-                return;
+        const canvas = canvasRef.current;
+        if (!canvas) return Promise.reject(new Error(EXPORT_ERROR));
+
+        const scaled = createScaledCanvas(canvas);
+        if (!scaled) return Promise.reject(new Error(EXPORT_ERROR));
+
+        const { offscreen, ctx, width, height } = scaled;
+        ctx.fillStyle = '#0D1117';
+        ctx.fillRect(0, 0, width, height);
+        ctx.drawImage(canvas, 0, 0, width, height);
+
+        return toBlobPromise(offscreen, 'image/jpeg', 0.6);
+    };
+
+    const exportTransparentBlob = (): Promise<Blob> => {
+        const canvas = canvasRef.current;
+        if (!canvas) return Promise.reject(new Error(EXPORT_ERROR));
+
+        const scaled = createScaledCanvas(canvas);
+        if (!scaled) return Promise.reject(new Error(EXPORT_ERROR));
+
+        const { offscreen, ctx, width, height } = scaled;
+        ctx.drawImage(canvas, 0, 0, width, height);
+
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const pixels = imageData.data;
+        const ALPHA_THRESHOLD = 15;
+
+        let minX = width;
+        let minY = height;
+        let maxX = 0;
+        let maxY = 0;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                const alpha = pixels[idx + 3];
+                if (alpha !== undefined && alpha < ALPHA_THRESHOLD) {
+                    pixels[idx] = 0;
+                    pixels[idx + 1] = 0;
+                    pixels[idx + 2] = 0;
+                    pixels[idx + 3] = 0;
+                } else if (alpha !== undefined && alpha >= ALPHA_THRESHOLD) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
             }
+        }
 
-            const MAX_SIZE = 256;
-            const QUALITY = 0.6;
+        const PADDING = 6;
+        const cropX = Math.max(0, minX - PADDING);
+        const cropY = Math.max(0, minY - PADDING);
+        const cropW = Math.min(width, maxX + PADDING) - cropX;
+        const cropH = Math.min(height, maxY + PADDING) - cropY;
 
-            const scale = Math.min(MAX_SIZE / canvas.width, MAX_SIZE / canvas.height, 1);
+        const cropped = document.createElement('canvas');
+        const size = Math.max(cropW, cropH);
+        cropped.width = size;
+        cropped.height = size;
 
-            const width = Math.floor(canvas.width * scale);
-            const height = Math.floor(canvas.height * scale);
+        const croppedCtx = cropped.getContext('2d');
+        if (!croppedCtx) return Promise.reject(new Error(EXPORT_ERROR));
 
-            const offscreen = document.createElement('canvas');
-            offscreen.width = width;
-            offscreen.height = height;
+        ctx.putImageData(imageData, 0, 0);
 
-            const ctx = offscreen.getContext('2d');
-            if (!ctx) {
-                reject(new Error('Failed to export canvas'));
-                return;
-            }
+        const offsetX = (size - cropW) / 2;
+        const offsetY = (size - cropH) / 2;
+        croppedCtx.drawImage(offscreen, cropX, cropY, cropW, cropH, offsetX, offsetY, cropW, cropH);
 
-            ctx.fillStyle = '#0D1117';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.drawImage(canvas, 0, 0, width, height);
-
-            offscreen.toBlob(
-                (blob) => {
-                    if (blob) {
-                        resolve(blob);
-                    } else {
-                        reject(new Error('Failed to export canvas'));
-                    }
-                },
-                'image/jpeg',
-                QUALITY,
-            );
-        });
+        return toBlobPromise(cropped, 'image/png');
     };
 
     const setColour = (hex: string): void => {
@@ -324,6 +388,7 @@ export default function useDrawingCanvas(
         cancelStroke,
         undo,
         exportBlob,
+        exportTransparentBlob,
         clearCanvas,
         clearUndoStack,
         initGrid,

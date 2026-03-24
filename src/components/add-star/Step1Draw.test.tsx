@@ -11,6 +11,7 @@ import Step1Draw from '@/components/add-star/Step1Draw';
 
 const mocks = vi.hoisted(() => ({
     exportBlob: vi.fn(),
+    exportTransparentBlob: vi.fn(),
     clearCanvas: vi.fn(),
 }));
 
@@ -23,6 +24,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
         isBlank: boolean;
         strokeCount: number;
         exportBlob: () => Promise<Blob>;
+        exportTransparentBlob: () => Promise<Blob>;
         clearCanvas: () => void;
         undo: () => void;
     };
@@ -36,6 +38,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
                 isBlank: true,
                 strokeCount: 0,
                 exportBlob: mocks.exportBlob as () => Promise<Blob>,
+                exportTransparentBlob: mocks.exportTransparentBlob as () => Promise<Blob>,
                 clearCanvas: mocks.clearCanvas as () => void,
                 undo: vi.fn() as () => void,
             }));
@@ -45,6 +48,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
 });
 
 const mockBlob = new Blob(['drawing'], { type: 'image/jpeg' });
+const mockTransparentBlob = new Blob(['transparent'], { type: 'image/png' });
 
 describe('Step1Draw', () => {
     let fetchMock: ReturnType<typeof vi.fn>;
@@ -56,6 +60,7 @@ describe('Step1Draw', () => {
         useDrawingStore.getState().reset();
 
         mocks.exportBlob.mockResolvedValue(mockBlob);
+        mocks.exportTransparentBlob.mockResolvedValue(mockTransparentBlob);
 
         fetchMock = vi.fn().mockResolvedValue({
             json: () => Promise.resolve({ valid: true }),
@@ -181,6 +186,17 @@ describe('Step1Draw', () => {
         });
         await userEvent.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() => expect(useDrawingStore.getState().canvasBlob).toBe(mockBlob));
+    });
+
+    it('saves the transparent preview blob to the drawing store on valid drawing', async () => {
+        render(<Step1Draw />);
+        act(() => {
+            triggerBlankChange?.(false);
+        });
+        await userEvent.click(screen.getByRole('button', { name: /continue/i }));
+        await waitFor(() =>
+            expect(useDrawingStore.getState().previewBlob).toBe(mockTransparentBlob),
+        );
     });
 
     // --- continue: invalid drawing ---

@@ -24,6 +24,7 @@ export default function Step1Draw() {
     const isOpen = useModalStore((s) => s.isOpen);
     const nextStep = useModalStore((s) => s.nextStep);
     const setCanvasBlob = useDrawingStore((s) => s.setCanvasBlob);
+    const setPreviewBlob = useDrawingStore((s) => s.setPreviewBlob);
     const chosenColour = useDrawingStore((s) => s.chosenColour);
     const setChosenColour = useDrawingStore((s) => s.setChosenColour);
 
@@ -93,6 +94,8 @@ export default function Step1Draw() {
 
             if (data.valid) {
                 setCanvasBlob(exportedBlob);
+                const transparentBlob = await canvas.exportTransparentBlob();
+                setPreviewBlob(transparentBlob);
                 nextStep();
             } else if (data.error === 'api_error') {
                 showMessage('Something went wrong — please try again.', 'invalid', 4000);
@@ -109,13 +112,13 @@ export default function Step1Draw() {
 
     return (
         <div className="w-full">
-            <h2 className="mt-0 mb-5 text-lg font-medium text-center text-text-primary">
+            <h2 className="mt-4 mb-5 text-lg font-medium text-center text-text-primary font-heading">
                 Draw your star
             </h2>
 
             <DrawingCanvas ref={canvasRef} onBlankChange={setIsCanvasBlank} />
 
-            <div className="mt-4 flex justify-center gap-2">
+            <div className="mt-6 flex justify-center gap-2">
                 {STAR_COLOURS.map((colour) => (
                     <ColourSwatch
                         key={colour.id}
@@ -159,7 +162,7 @@ export default function Step1Draw() {
                     variant="primary"
                     isLoading={isValidating}
                     aria-label={isValidating ? 'Validating, please wait' : undefined}
-                    className="min-w-[110px]"
+                    className="min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
                     onClick={() => {
                         void handleContinue();
                     }}
