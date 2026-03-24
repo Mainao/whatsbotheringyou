@@ -48,6 +48,7 @@ vi.mock('@/components/add-star/DrawingCanvas', async () => {
 });
 
 const mockBlob = new Blob(['drawing'], { type: 'image/jpeg' });
+const mockTransparentBlob = new Blob(['transparent'], { type: 'image/png' });
 
 describe('Step1Draw', () => {
     let fetchMock: ReturnType<typeof vi.fn>;
@@ -59,7 +60,7 @@ describe('Step1Draw', () => {
         useDrawingStore.getState().reset();
 
         mocks.exportBlob.mockResolvedValue(mockBlob);
-        mocks.exportTransparentBlob.mockResolvedValue(mockBlob);
+        mocks.exportTransparentBlob.mockResolvedValue(mockTransparentBlob);
 
         fetchMock = vi.fn().mockResolvedValue({
             json: () => Promise.resolve({ valid: true }),
@@ -185,6 +186,17 @@ describe('Step1Draw', () => {
         });
         await userEvent.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() => expect(useDrawingStore.getState().canvasBlob).toBe(mockBlob));
+    });
+
+    it('saves the transparent preview blob to the drawing store on valid drawing', async () => {
+        render(<Step1Draw />);
+        act(() => {
+            triggerBlankChange?.(false);
+        });
+        await userEvent.click(screen.getByRole('button', { name: /continue/i }));
+        await waitFor(() =>
+            expect(useDrawingStore.getState().previewBlob).toBe(mockTransparentBlob),
+        );
     });
 
     // --- continue: invalid drawing ---
