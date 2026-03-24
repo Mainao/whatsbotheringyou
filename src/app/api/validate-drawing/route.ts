@@ -3,10 +3,6 @@ import Anthropic from '@anthropic-ai/sdk';
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
 export async function POST(request: Request): Promise<Response> {
-    if (process.env.NODE_ENV === 'development') {
-        return Response.json({ valid: true });
-    }
-
     try {
         const anthropic = new Anthropic({
             apiKey: process.env.ANTHROPIC_API_KEY,
