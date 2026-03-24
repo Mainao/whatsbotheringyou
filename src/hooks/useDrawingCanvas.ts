@@ -20,9 +20,7 @@ export interface DrawingCanvasHandle {
 const EXPORT_ERROR = 'Failed to export canvas';
 const EXPORT_MAX_SIZE = 256;
 
-function createScaledCanvas(
-    source: HTMLCanvasElement,
-): {
+function createScaledCanvas(source: HTMLCanvasElement): {
     offscreen: HTMLCanvasElement;
     ctx: CanvasRenderingContext2D;
     width: number;
