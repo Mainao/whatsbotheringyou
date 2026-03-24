@@ -9,6 +9,7 @@ export interface DrawingCanvasHandle {
     isBlank: boolean;
     strokeCount: number;
     exportBlob: () => Promise<Blob>;
+    exportTransparentBlob: () => Promise<Blob>;
     clearCanvas: () => void;
     undo: () => void;
     setColour: (hex: string) => void;
@@ -31,6 +32,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         cancelStroke,
         undo,
         exportBlob,
+        exportTransparentBlob,
         clearCanvas,
         clearUndoStack,
         initGrid,
@@ -91,6 +93,7 @@ const DrawingCanvas = forwardRef<DrawingCanvasHandle, DrawingCanvasProps>(functi
         isBlank,
         strokeCount,
         exportBlob,
+        exportTransparentBlob,
         clearCanvas,
         undo,
         setColour,

@@ -15,7 +15,7 @@ const useModalStore = create<ModalStore>()((set) => ({
     isOpen: false,
     currentStep: 1,
     open: () => set({ isOpen: true, currentStep: 1 }),
-    close: () => set({ isOpen: false, currentStep: 1 }),
+    close: () => set({ isOpen: false }),
     nextStep: () =>
         set((state) => ({
             currentStep: Math.min(state.currentStep + 1, 3) as Step,

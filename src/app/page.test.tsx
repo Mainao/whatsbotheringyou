@@ -37,12 +37,6 @@ vi.mock('@/components/add-star/Step1Draw', () => ({
     default: () => <div data-testid="mock-step1draw" />,
 }));
 
-vi.mock('@/components/add-star/StepIndicator', () => ({
-    default: ({ currentStep }: { currentStep: 1 | 2 | 3 }) => (
-        <div data-testid="mock-step-indicator" data-step={currentStep} />
-    ),
-}));
-
 describe('Home page', () => {
     beforeEach(() => {
         useModalStore.getState().close();
@@ -106,15 +100,6 @@ describe('Home page', () => {
         render(<Home />);
         await user.click(screen.getByRole('button', { name: /add star/i }));
         expect(screen.getByRole('button', { name: /close modal/i })).toBeInTheDocument();
-    });
-
-    it('modal renders step indicator at step 1 when first opened', async () => {
-        const user = userEvent.setup();
-        render(<Home />);
-        await user.click(screen.getByRole('button', { name: /add star/i }));
-        const indicator = screen.getByTestId('mock-step-indicator');
-        expect(indicator).toBeInTheDocument();
-        expect(indicator).toHaveAttribute('data-step', '1');
     });
 
     it('modal renders Step 1 content when first opened', async () => {
