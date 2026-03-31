@@ -204,7 +204,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('asdf');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() =>
             expect(
                 screen.getByText(/try sharing what's actually bothering you/i),
@@ -221,7 +221,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('I feel so lost');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
     });
 

@@ -29,7 +29,7 @@ export default function Step2WriteText() {
         return () => URL.revokeObjectURL(url);
     }, [canvasBlob]);
 
-    const handleSubmit = async () => {
+    const handleContinue = async () => {
         const trimmed = worryText.trim();
 
         if (trimmed.length === 0) {
@@ -110,10 +110,10 @@ export default function Step2WriteText() {
                     isLoading={isValidating}
                     className="min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
                     onClick={() => {
-                        void handleSubmit();
+                        void handleContinue();
                     }}
                 >
-                    Submit
+                    Continue
                     <MoveRight size={14} />
                 </Button>
             </div>
