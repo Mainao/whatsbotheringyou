@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +13,10 @@ vi.mock('next/image', () => ({
         <img src={src} alt={alt} />
     ),
 }));
+
+function mockFetch(data: { valid: boolean; reason: string }) {
+    return vi.fn(() => Promise.resolve({ json: () => Promise.resolve(data) }));
+}
 
 describe('Step2WriteText', () => {
     let createObjectURLMock: ReturnType<typeof vi.fn>;
@@ -53,9 +57,9 @@ describe('Step2WriteText', () => {
         expect(screen.getByRole('textbox', { name: /what's bothering you/i })).toBeInTheDocument();
     });
 
-    it('renders the Continue button', () => {
+    it('renders the Submit button', () => {
         render(<Step2WriteText />);
-        expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
     });
 
     it('renders the character counter at 0 initially', () => {
@@ -133,20 +137,92 @@ describe('Step2WriteText', () => {
         );
     });
 
-    // --- continue button ---
+    // --- submit: empty text skips validation ---
 
-    it('clicking Continue advances to step 3', async () => {
+    it('advances to step 3 without calling the API when text is empty', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /submit/i }));
         expect(useModalStore.getState().currentStep).toBe(3);
+        expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('clicking Continue advances to step 3 even when textarea is empty', async () => {
+    it('advances to step 3 without calling the API when text is whitespace only', async () => {
+        const fetchMock = vi.fn();
+        vi.stubGlobal('fetch', fetchMock);
+        useDrawingStore.getState().setWorryText('   ');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /submit/i }));
         expect(useModalStore.getState().currentStep).toBe(3);
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    // --- submit: validation ---
+
+    it('calls the validate-text API with the worry text', async () => {
+        const fetchMock = mockFetch({ valid: true, reason: 'ok' });
+        vi.stubGlobal('fetch', fetchMock);
+        useDrawingStore.getState().setWorryText('I am so anxious');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await waitFor(() =>
+            expect(fetchMock).toHaveBeenCalledWith(
+                '/api/validate-text',
+                expect.objectContaining({ method: 'POST' }),
+            ),
+        );
+    });
+
+    it('advances to step 3 when validation returns valid', async () => {
+        vi.stubGlobal('fetch', mockFetch({ valid: true, reason: 'ok' }));
+        useDrawingStore.getState().setWorryText('I am so anxious');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
+    });
+
+    it('shows a user-friendly error message when validation returns invalid', async () => {
+        vi.stubGlobal('fetch', mockFetch({ valid: false, reason: 'not a worry' }));
+        useDrawingStore.getState().setWorryText('asdf lol');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await waitFor(() =>
+            expect(
+                screen.getByText(/try sharing what's actually bothering you/i),
+            ).toBeInTheDocument(),
+        );
+    });
+
+    it('does not advance to step 3 when validation returns invalid', async () => {
+        vi.stubGlobal('fetch', mockFetch({ valid: false, reason: 'not a worry' }));
+        useDrawingStore.getState().setWorryText('asdf');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await waitFor(() =>
+            expect(
+                screen.getByText(/try sharing what's actually bothering you/i),
+            ).toBeInTheDocument(),
+        );
+        expect(useModalStore.getState().currentStep).toBe(2);
+    });
+
+    it('advances to step 3 on network error (fail open)', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() => Promise.reject(new Error('network error'))),
+        );
+        useDrawingStore.getState().setWorryText('I feel so lost');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
     });
 
     // --- object URL lifecycle ---
