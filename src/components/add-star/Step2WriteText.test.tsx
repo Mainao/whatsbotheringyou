@@ -57,9 +57,9 @@ describe('Step2WriteText', () => {
         expect(screen.getByRole('textbox', { name: /what's bothering you/i })).toBeInTheDocument();
     });
 
-    it('renders the Submit button', () => {
+    it('renders the Continue button', () => {
         render(<Step2WriteText />);
-        expect(screen.getByRole('button', { name: /submit/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
     });
 
     it('renders the character counter at 0 initially', () => {
@@ -144,7 +144,7 @@ describe('Step2WriteText', () => {
         vi.stubGlobal('fetch', fetchMock);
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         expect(useModalStore.getState().currentStep).toBe(3);
         expect(fetchMock).not.toHaveBeenCalled();
     });
@@ -155,7 +155,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('   ');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         expect(useModalStore.getState().currentStep).toBe(3);
         expect(fetchMock).not.toHaveBeenCalled();
     });
@@ -168,7 +168,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('I am so anxious');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() =>
             expect(fetchMock).toHaveBeenCalledWith(
                 '/api/validate-text',
@@ -182,7 +182,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('I am so anxious');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
     });
 
@@ -191,7 +191,7 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('asdf lol');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /submit/i }));
+        await user.click(screen.getByRole('button', { name: /continue/i }));
         await waitFor(() =>
             expect(
                 screen.getByText(/try sharing what's actually bothering you/i),
