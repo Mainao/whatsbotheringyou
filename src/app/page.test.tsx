@@ -41,9 +41,13 @@ vi.mock('@/components/add-star/Step2WriteText', () => ({
     default: () => <div data-testid="mock-step2writetext" />,
 }));
 
+vi.mock('@/components/crisis/CrisisScreen', () => ({
+    default: () => <div data-testid="mock-crisis-screen" />,
+}));
+
 describe('Home page', () => {
     beforeEach(() => {
-        useModalStore.getState().close();
+        useModalStore.setState({ isOpen: false, currentStep: 1, isCrisis: false });
     });
 
     // --- rendering ---
@@ -133,6 +137,19 @@ describe('Home page', () => {
         useModalStore.setState({ isOpen: true, currentStep: 3 });
         render(<Home />);
         expect(screen.getByText(/step 3 coming soon/i)).toBeInTheDocument();
+    });
+
+    // --- crisis screen ---
+
+    it('renders the crisis screen when isCrisis is true', () => {
+        useModalStore.setState({ isOpen: false, currentStep: 1, isCrisis: true });
+        render(<Home />);
+        expect(screen.getByTestId('mock-crisis-screen')).toBeInTheDocument();
+    });
+
+    it('does not render the crisis screen when isCrisis is false', () => {
+        render(<Home />);
+        expect(screen.queryByTestId('mock-crisis-screen')).not.toBeInTheDocument();
     });
 
     // --- drawing store reset ---

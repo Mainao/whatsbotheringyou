@@ -7,6 +7,7 @@ import useModalStore from '@/store/useModalStore';
 
 import Step1Draw from '@/components/add-star/Step1Draw';
 import Step2WriteText from '@/components/add-star/Step2WriteText';
+import CrisisScreen from '@/components/crisis/CrisisScreen';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import PresenceCounter from '@/components/universe/PresenceCounter';
@@ -16,6 +17,7 @@ export default function Home() {
     const open = useModalStore((s) => s.open);
     const isOpen = useModalStore((s) => s.isOpen);
     const currentStep = useModalStore((s) => s.currentStep);
+    const isCrisis = useModalStore((s) => s.isCrisis);
     const close = useModalStore((s) => s.close);
     const reset = useDrawingStore((s) => s.reset);
 
@@ -26,6 +28,7 @@ export default function Home() {
 
     return (
         <main className="fixed inset-0 w-screen h-screen overflow-hidden">
+            {isCrisis && <CrisisScreen />}
             <UniverseCanvas />
 
             <div className="fixed top-4 left-4 z-20">
