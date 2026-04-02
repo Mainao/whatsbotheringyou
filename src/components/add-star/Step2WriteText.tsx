@@ -11,13 +11,19 @@ import useModalStore from '@/store/useModalStore';
 
 import { Button } from '@/components/ui/Button';
 
+async function submitStar(): Promise<void> {
+    // TODO: replace with real API call
+    await Promise.resolve();
+}
+
 const MAX_CHARS = 140;
 
 export default function Step2WriteText() {
     const worryText = useDrawingStore((s) => s.worryText);
     const setWorryText = useDrawingStore((s) => s.setWorryText);
     const canvasBlob = useDrawingStore((s) => s.previewBlob);
-    const nextStep = useModalStore((s) => s.nextStep);
+    const triggerCrisis = useModalStore((s) => s.triggerCrisis);
+    const isCrisis = useModalStore((s) => s.isCrisis);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
@@ -29,11 +35,13 @@ export default function Step2WriteText() {
         return () => URL.revokeObjectURL(url);
     }, [canvasBlob]);
 
-    const handleContinue = async () => {
+    const handleSubmit = async () => {
         const trimmed = worryText.trim();
 
         if (trimmed.length === 0) {
-            nextStep();
+            setValidationError(
+                'What is bothering you? Share something to release it to the universe.',
+            );
             return;
         }
 
@@ -46,19 +54,35 @@ export default function Step2WriteText() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: trimmed }),
             });
-            const data = (await response.json()) as { valid: boolean; reason: string };
+            const data = (await response.json()) as {
+                status: 'valid' | 'invalid' | 'crisis';
+                reason: string;
+            };
 
-            if (data.valid) {
-                nextStep();
+            if (data.status === 'valid') {
+                await submitStar();
+            } else if (data.status === 'crisis') {
+                triggerCrisis();
             } else {
-                setValidationError(
-                    `The universe is listening — try sharing what's actually bothering you.`,
-                );
+                if (data.reason === 'harmful') {
+                    setValidationError(
+                        'This is a space for kindness. Please be gentle with your words 💫',
+                    );
+                } else if (data.reason === 'non-english') {
+                    setValidationError(
+                        'We currently support English only. Please share your worry in English 💫',
+                    );
+                } else {
+                    setValidationError(
+                        "The universe is listening — try sharing what's actually bothering you.",
+                    );
+                }
             }
         } catch {
-            nextStep();
+            await submitStar();
         } finally {
             setIsValidating(false);
+            setWorryText('');
         }
     };
 
@@ -103,20 +127,22 @@ export default function Step2WriteText() {
                 </p>
             )}
 
-            <div className="flex w-full justify-end mt-auto pt-8">
-                <Button
-                    type="button"
-                    variant="primary"
-                    isLoading={isValidating}
-                    className="min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
-                    onClick={() => {
-                        void handleContinue();
-                    }}
-                >
-                    Continue
-                    <MoveRight size={14} />
-                </Button>
-            </div>
+            {!isCrisis && (
+                <div className="flex w-full justify-end mt-auto pt-8">
+                    <Button
+                        type="button"
+                        variant="primary"
+                        isLoading={isValidating}
+                        className="capitalize min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
+                        onClick={() => {
+                            void handleSubmit();
+                        }}
+                    >
+                        release your worry
+                        <MoveRight size={14} />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

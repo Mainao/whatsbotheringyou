@@ -14,7 +14,12 @@ vi.mock('next/image', () => ({
     ),
 }));
 
-function mockFetch(data: { valid: boolean; reason: string }) {
+type ValidateTextResponse = {
+    status: 'valid' | 'invalid' | 'crisis';
+    reason: string;
+};
+
+function mockFetch(data: ValidateTextResponse) {
     return vi.fn(() => Promise.resolve({ json: () => Promise.resolve(data) }));
 }
 
@@ -24,7 +29,7 @@ describe('Step2WriteText', () => {
 
     beforeEach(() => {
         useDrawingStore.getState().reset();
-        useModalStore.setState({ isOpen: true, currentStep: 2 });
+        useModalStore.setState({ isOpen: true, currentStep: 2, isCrisis: false });
 
         createObjectURLMock = vi.fn(() => 'blob:mock-url');
         revokeObjectURLMock = vi.fn();
@@ -57,9 +62,9 @@ describe('Step2WriteText', () => {
         expect(screen.getByRole('textbox', { name: /what's bothering you/i })).toBeInTheDocument();
     });
 
-    it('renders the Continue button', () => {
+    it('renders the text submit button', () => {
         render(<Step2WriteText />);
-        expect(screen.getByRole('button', { name: /continue/i })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /release your worry/i })).toBeInTheDocument();
     });
 
     it('renders the character counter at 0 initially', () => {
@@ -139,36 +144,49 @@ describe('Step2WriteText', () => {
 
     // --- submit: empty text skips validation ---
 
-    it('advances to step 3 without calling the API when text is empty', async () => {
+    it('does not call the API when text is empty', async () => {
         const fetchMock = vi.fn();
         vi.stubGlobal('fetch', fetchMock);
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
-        expect(useModalStore.getState().currentStep).toBe(3);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('advances to step 3 without calling the API when text is whitespace only', async () => {
+    it('shows a validation message when submitted with empty text', async () => {
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        expect(screen.getByText(/what is bothering you/i)).toBeInTheDocument();
+    });
+
+    it('does not call the API when text is whitespace only', async () => {
         const fetchMock = vi.fn();
         vi.stubGlobal('fetch', fetchMock);
         useDrawingStore.getState().setWorryText('   ');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
-        expect(useModalStore.getState().currentStep).toBe(3);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
         expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('shows a validation message when submitted with whitespace only', async () => {
+        useDrawingStore.getState().setWorryText('   ');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        expect(screen.getByText(/what is bothering you/i)).toBeInTheDocument();
     });
 
     // --- submit: validation ---
 
     it('calls the validate-text API with the worry text', async () => {
-        const fetchMock = mockFetch({ valid: true, reason: 'ok' });
+        const fetchMock = mockFetch({ status: 'valid', reason: 'ok' });
         vi.stubGlobal('fetch', fetchMock);
         useDrawingStore.getState().setWorryText('I am so anxious');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
         await waitFor(() =>
             expect(fetchMock).toHaveBeenCalledWith(
                 '/api/validate-text',
@@ -177,21 +195,12 @@ describe('Step2WriteText', () => {
         );
     });
 
-    it('advances to step 3 when validation returns valid', async () => {
-        vi.stubGlobal('fetch', mockFetch({ valid: true, reason: 'ok' }));
-        useDrawingStore.getState().setWorryText('I am so anxious');
-        const user = userEvent.setup();
-        render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
-        await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
-    });
-
     it('shows a user-friendly error message when validation returns invalid', async () => {
-        vi.stubGlobal('fetch', mockFetch({ valid: false, reason: 'not a worry' }));
+        vi.stubGlobal('fetch', mockFetch({ status: 'invalid', reason: 'not a worry' }));
         useDrawingStore.getState().setWorryText('asdf lol');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
         await waitFor(() =>
             expect(
                 screen.getByText(/try sharing what's actually bothering you/i),
@@ -199,21 +208,82 @@ describe('Step2WriteText', () => {
         );
     });
 
-    it('does not advance to step 3 when validation returns invalid', async () => {
-        vi.stubGlobal('fetch', mockFetch({ valid: false, reason: 'not a worry' }));
+    it('does not show the error message when validation returns valid', async () => {
+        const fetchMock = mockFetch({ status: 'valid', reason: 'ok' });
+        vi.stubGlobal('fetch', fetchMock);
+        useDrawingStore.getState().setWorryText('I am so anxious');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+        expect(
+            screen.queryByText(/try sharing what's actually bothering you/i),
+        ).not.toBeInTheDocument();
+    });
+
+    // --- crisis detection ---
+
+    it('sets isCrisis in the store when status is crisis', async () => {
+        vi.stubGlobal('fetch', mockFetch({ status: 'crisis', reason: 'needs support' }));
+        useDrawingStore.getState().setWorryText('I want to hurt myself');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() => expect(useModalStore.getState().isCrisis).toBe(true));
+    });
+
+    it('closes the modal when crisis is detected', async () => {
+        vi.stubGlobal('fetch', mockFetch({ status: 'crisis', reason: 'needs support' }));
+        useDrawingStore.getState().setWorryText('I do not want to be alive anymore');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() => expect(useModalStore.getState().isOpen).toBe(false));
+    });
+
+    it('hides the Continue button when isCrisis is true in the store', async () => {
+        vi.stubGlobal('fetch', mockFetch({ status: 'crisis', reason: 'needs support' }));
+        useDrawingStore.getState().setWorryText('I want to hurt myself');
+        const user = userEvent.setup();
+        render(<Step2WriteText />);
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('button', { name: /release your worry/i }),
+            ).not.toBeInTheDocument(),
+        );
+    });
+
+    it('clears the validation error when crisis is detected', async () => {
+        const fetchMock = vi
+            .fn()
+            .mockResolvedValueOnce({
+                json: () => Promise.resolve({ status: 'invalid', reason: 'not a worry' }),
+            })
+            .mockResolvedValueOnce({
+                json: () => Promise.resolve({ status: 'crisis', reason: 'needs support' }),
+            });
+        vi.stubGlobal('fetch', fetchMock);
         useDrawingStore.getState().setWorryText('asdf');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
+
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
         await waitFor(() =>
             expect(
                 screen.getByText(/try sharing what's actually bothering you/i),
             ).toBeInTheDocument(),
         );
-        expect(useModalStore.getState().currentStep).toBe(2);
+
+        useDrawingStore.getState().setWorryText('I want to hurt myself');
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() => expect(useModalStore.getState().isCrisis).toBe(true));
+        expect(
+            screen.queryByText(/try sharing what's actually bothering you/i),
+        ).not.toBeInTheDocument();
     });
 
-    it('advances to step 3 on network error (fail open)', async () => {
+    it('does not trigger crisis on network error', async () => {
         vi.stubGlobal(
             'fetch',
             vi.fn(() => Promise.reject(new Error('network error'))),
@@ -221,8 +291,11 @@ describe('Step2WriteText', () => {
         useDrawingStore.getState().setWorryText('I feel so lost');
         const user = userEvent.setup();
         render(<Step2WriteText />);
-        await user.click(screen.getByRole('button', { name: /continue/i }));
-        await waitFor(() => expect(useModalStore.getState().currentStep).toBe(3));
+        await user.click(screen.getByRole('button', { name: /release your worry/i }));
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: /release your worry/i })).toBeInTheDocument(),
+        );
+        expect(useModalStore.getState().isCrisis).toBe(false);
     });
 
     // --- object URL lifecycle ---
