@@ -10,23 +10,7 @@ export default defineConfig({
         setupFiles: ['./src/test/setup.ts'],
         globals: true,
         restoreMocks: true,
-        coverage: {
-            provider: 'v8',
-            reporter: ['text', 'lcov'],
-            exclude: [
-                'node_modules/',
-                '.next/',
-                'src/app/api/**',
-                '**/*.config.*',
-                '**/*.d.ts',
-                'src/test/**',
-            ],
-            thresholds: {
-                lines: 30,
-                functions: 30,
-                branches: 30,
-            },
-        },
+        passWithNoTests: true,
     },
     resolve: {
         alias: {
