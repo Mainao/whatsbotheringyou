@@ -87,11 +87,17 @@ export default function AmbientStars() {
 
         let rafId: number;
         let startTime = 0;
+        let fadeStartTime = 0;
+        const FADE_IN_MS = 1000;
 
         const draw = (timestamp: number) => {
             if (startTime === 0) startTime = timestamp;
             const elapsed = timestamp - startTime;
 
+            const fadeAlpha =
+                fadeStartTime === 0 ? 0 : Math.min(1, (timestamp - fadeStartTime) / FADE_IN_MS);
+
+            ctx.globalAlpha = fadeAlpha;
             ctx.clearRect(0, 0, cssWidth, cssHeight);
 
             for (const star of stars) {
@@ -112,10 +118,13 @@ export default function AmbientStars() {
                 ctx.fill();
             }
 
+            ctx.globalAlpha = 1;
             rafId = requestAnimationFrame(draw);
         };
 
-        rafId = requestAnimationFrame(draw);
+        draw(performance.now());
+        document.documentElement.dataset.canvasReady = '';
+        fadeStartTime = performance.now();
 
         const handleResize = () => {
             setSize();
