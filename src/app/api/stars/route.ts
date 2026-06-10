@@ -1,5 +1,18 @@
 import { prisma } from '@/lib/prisma';
 
+import type { Prisma } from '@prisma/client';
+
+type StarMetadataRow = Prisma.StarGetPayload<{
+    select: {
+        id: true;
+        message: true;
+        starColor: true;
+        replyCount: true;
+        createdAt: true;
+        expiresAt: true;
+    };
+}>;
+
 const RATE_LIMIT_MAX = 30;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_STORE_MAX_ENTRIES = 5_000;
@@ -90,7 +103,10 @@ export async function GET(request: Request): Promise<Response> {
             take: MAX_STARS,
         });
         return Response.json({
-            stars: stars.map((s) => ({ ...s, drawingData: null as string | null })),
+            stars: stars.map((s: StarMetadataRow) => ({
+                ...s,
+                drawingData: null as string | null,
+            })),
         });
     } catch (error) {
         // eslint-disable-next-line no-console

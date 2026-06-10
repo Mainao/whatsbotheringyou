@@ -16,7 +16,8 @@
         "test:run": "vitest run",
         "test:coverage": "vitest run --coverage",
         "check": "pnpm type-check && pnpm lint && pnpm format:check && pnpm test:run",
-        "prepare": "husky"
+        "prepare": "husky",
+        "postinstall": "prisma generate"
     },
     "lint-staged": {
         "*.{ts,tsx}": [
