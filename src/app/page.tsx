@@ -1,17 +1,25 @@
 'use client';
 
+import { useEffect } from 'react';
+
+import dynamic from 'next/dynamic';
+
 import { Star, X } from 'lucide-react';
 
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
+import useStarsStore from '@/store/useStarsStore';
 
-import Step1Draw from '@/components/add-star/Step1Draw';
-import Step2WriteText from '@/components/add-star/Step2WriteText';
-import CrisisScreen from '@/components/crisis/CrisisScreen';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import PresenceCounter from '@/components/universe/PresenceCounter';
 import UniverseCanvas from '@/components/universe/UniverseCanvas';
+
+const Step1Draw = dynamic(() => import('@/components/add-star/Step1Draw'), { ssr: false });
+const Step2WriteText = dynamic(() => import('@/components/add-star/Step2WriteText'), {
+    ssr: false,
+});
+const CrisisScreen = dynamic(() => import('@/components/crisis/CrisisScreen'), { ssr: false });
 
 export default function Home() {
     const open = useModalStore((s) => s.open);
@@ -20,6 +28,16 @@ export default function Home() {
     const isCrisis = useModalStore((s) => s.isCrisis);
     const close = useModalStore((s) => s.close);
     const reset = useDrawingStore((s) => s.reset);
+    const fetchStars = useStarsStore((s) => s.fetchStars);
+    const fetchDrawings = useStarsStore((s) => s.fetchDrawings);
+    const starCount = useStarsStore((s) => s.stars.length);
+
+    useEffect(() => {
+        void (async () => {
+            await fetchStars();
+            void fetchDrawings();
+        })();
+    }, [fetchStars, fetchDrawings]);
 
     const handleClose = () => {
         close();
@@ -51,7 +69,7 @@ export default function Home() {
                 Add Star
             </Button>
 
-            <PresenceCounter count={0} />
+            <PresenceCounter count={starCount} />
 
             <Modal isOpen={isOpen} onClose={handleClose} labelId="add-star-title">
                 <Button
