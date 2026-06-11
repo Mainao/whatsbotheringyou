@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model Star {
+    id          String   @id @default(uuid()) @db.Uuid
+    message     String   @db.VarChar(280)
+    authorId    String   @map("author_id")
+    starColor   String   @default("#FFD700") @map("star_color")
+    drawingData String?  @map("drawing_data") @db.Text
+    replyCount  Int      @default(0) @map("reply_count")
+    createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+    expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+    replies     Reply[]
+    reports     Report[] @relation("StarReports")
+
+    @@index([expiresAt])
+    @@index([authorId, createdAt])
+    @@map("stars")
+}
+
+model Reply {
+    id        String   @id @default(uuid()) @db.Uuid
+    starId    String   @map("star_id") @db.Uuid
+    message   String   @db.VarChar(200)
+    authorId  String   @map("author_id")
+    angelName String   @map("angel_name")
+    createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+    star      Star     @relation(fields: [starId], references: [id], onDelete: Cascade)
+    reports   Report[] @relation("ReplyReports")
+
+    @@index([starId])
+    @@index([authorId, createdAt])
+    @@map("replies")
+}
+
+model Report {
+    id         String   @id @default(uuid()) @db.Uuid
+    targetType String   @map("target_type")
+    targetId   String   @map("target_id") @db.Uuid
+    reporterId String   @map("reporter_id")
+    reason     String   @db.VarChar(500)
+    createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+    star       Star?    @relation("StarReports", fields: [targetId], references: [id], onDelete: Cascade, map: "reports_star_fk")
+    reply      Reply?   @relation("ReplyReports", fields: [targetId], references: [id], onDelete: Cascade, map: "reports_reply_fk")
+
+    @@index([targetType, targetId])
+    @@index([reporterId, createdAt])
+    @@map("reports")
+}
+
+model DailyStats {
+    id          String   @id @default(uuid()) @db.Uuid
+    date        DateTime @unique @db.Date
+    starCount   Int      @default(0) @map("star_count")
+    replyCount  Int      @default(0) @map("reply_count")
+    activeUsers Int      @default(0) @map("active_users")
+
+    @@map("daily_stats")
+}

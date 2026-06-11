@@ -8,12 +8,39 @@ import { MoveRight } from 'lucide-react';
 
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
+import useStarsStore from '@/store/useStarsStore';
 
 import { Button } from '@/components/ui/Button';
 
-async function submitStar(): Promise<void> {
-    // TODO: replace with real API call
-    await Promise.resolve();
+import type { StarRecord } from '@/types/star';
+
+async function submitStar(
+    worryText: string,
+    starColor: string,
+    blob: Blob | null,
+): Promise<{ ok: true; star: StarRecord } | { ok: false; message: string }> {
+    const formData = new FormData();
+    formData.append('worryText', worryText);
+    formData.append('starColor', starColor);
+    if (blob !== null) {
+        formData.append('drawing', blob);
+    }
+
+    const response = await fetch('/api/star', { method: 'POST', body: formData });
+
+    if (response.status === 429) {
+        return {
+            ok: false,
+            message: "You've already released a star today — come back tomorrow 🌟",
+        };
+    }
+
+    if (!response.ok) {
+        return { ok: false, message: 'Something went wrong — please try again.' };
+    }
+
+    const data = (await response.json()) as { star: StarRecord };
+    return { ok: true, star: data.star };
 }
 
 const MAX_CHARS = 140;
@@ -21,19 +48,24 @@ const MAX_CHARS = 140;
 export default function Step2WriteText() {
     const worryText = useDrawingStore((s) => s.worryText);
     const setWorryText = useDrawingStore((s) => s.setWorryText);
-    const canvasBlob = useDrawingStore((s) => s.previewBlob);
+    const submissionBlob = useDrawingStore((s) => s.canvasBlob);
+    const previewBlob = useDrawingStore((s) => s.previewBlob);
+    const chosenColour = useDrawingStore((s) => s.chosenColour);
+    const reset = useDrawingStore((s) => s.reset);
     const triggerCrisis = useModalStore((s) => s.triggerCrisis);
     const isCrisis = useModalStore((s) => s.isCrisis);
+    const close = useModalStore((s) => s.close);
+    const addStar = useStarsStore((s) => s.addStar);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!canvasBlob) return;
-        const url = URL.createObjectURL(canvasBlob);
+        if (!previewBlob) return;
+        const url = URL.createObjectURL(previewBlob);
         setPreviewUrl(url);
         return () => URL.revokeObjectURL(url);
-    }, [canvasBlob]);
+    }, [previewBlob]);
 
     const handleSubmit = async () => {
         const trimmed = worryText.trim();
@@ -60,7 +92,14 @@ export default function Step2WriteText() {
             };
 
             if (data.status === 'valid') {
-                await submitStar();
+                const result = await submitStar(trimmed, chosenColour, submissionBlob);
+                if (result.ok) {
+                    addStar(result.star);
+                    close();
+                    reset();
+                } else {
+                    setValidationError(result.message);
+                }
             } else if (data.status === 'crisis') {
                 triggerCrisis();
             } else {
@@ -79,7 +118,14 @@ export default function Step2WriteText() {
                 }
             }
         } catch {
-            await submitStar();
+            const result = await submitStar(trimmed, chosenColour, submissionBlob);
+            if (result.ok) {
+                addStar(result.star);
+                close();
+                reset();
+            } else {
+                setValidationError(result.message);
+            }
         } finally {
             setIsValidating(false);
             setWorryText('');
