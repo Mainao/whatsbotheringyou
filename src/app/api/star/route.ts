@@ -73,6 +73,24 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ error: 'starColor is required' }, { status: 400 });
         }
 
+        const todayMidnightUTC = new Date();
+        todayMidnightUTC.setUTCHours(0, 0, 0, 0);
+
+        const existing = await prisma.star.findFirst({
+            where: { authorId: ip, createdAt: { gte: todayMidnightUTC } },
+            select: { id: true },
+        });
+
+        if (existing !== null) {
+            return Response.json(
+                {
+                    error: 'already_submitted',
+                    message: "You've already released your worry today. Come back tomorrow ✨",
+                },
+                { status: 429 },
+            );
+        }
+
         let drawingData: string | null = null;
         if (drawing instanceof Blob) {
             if (drawing.size > MAX_FILE_SIZE) {

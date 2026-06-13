@@ -14,11 +14,16 @@ import { Button } from '@/components/ui/Button';
 
 import type { StarRecord } from '@/types/star';
 
+type SubmitResult =
+    | { ok: true; star: StarRecord }
+    | { ok: false; kind: 'already_submitted'; message: string }
+    | { ok: false; kind: 'error'; message: string };
+
 async function submitStar(
     worryText: string,
     starColor: string,
     blob: Blob | null,
-): Promise<{ ok: true; star: StarRecord } | { ok: false; message: string }> {
+): Promise<SubmitResult> {
     const formData = new FormData();
     formData.append('worryText', worryText);
     formData.append('starColor', starColor);
@@ -29,14 +34,21 @@ async function submitStar(
     const response = await fetch('/api/star', { method: 'POST', body: formData });
 
     if (response.status === 429) {
-        return {
-            ok: false,
-            message: "You've already released a star today — come back tomorrow 🌟",
-        };
+        const data = (await response.json()) as { error?: string; message?: string };
+        if (data.error === 'already_submitted') {
+            return {
+                ok: false,
+                kind: 'already_submitted',
+                message:
+                    data.message ??
+                    "You've already released your worry today. Come back tomorrow ✨",
+            };
+        }
+        return { ok: false, kind: 'error', message: 'Too many requests — please try again later.' };
     }
 
     if (!response.ok) {
-        return { ok: false, message: 'Something went wrong — please try again.' };
+        return { ok: false, kind: 'error', message: 'Something went wrong — please try again.' };
     }
 
     const data = (await response.json()) as { star: StarRecord };
@@ -59,6 +71,7 @@ export default function Step2WriteText() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [dailyNotice, setDailyNotice] = useState<string | null>(null);
 
     useEffect(() => {
         if (!previewBlob) return;
@@ -97,6 +110,8 @@ export default function Step2WriteText() {
                     addStar(result.star);
                     close();
                     reset();
+                } else if (result.kind === 'already_submitted') {
+                    setDailyNotice(result.message);
                 } else {
                     setValidationError(result.message);
                 }
@@ -123,6 +138,8 @@ export default function Step2WriteText() {
                 addStar(result.star);
                 close();
                 reset();
+            } else if (result.kind === 'already_submitted') {
+                setDailyNotice(result.message);
             } else {
                 setValidationError(result.message);
             }
@@ -133,6 +150,17 @@ export default function Step2WriteText() {
     };
 
     const typed = worryText.length;
+
+    if (dailyNotice !== null) {
+        return (
+            <div className="flex flex-col flex-1 items-center justify-center text-center gap-5 py-8">
+                <span className="text-5xl">✨</span>
+                <p className="text-text-primary text-sm leading-relaxed max-w-[260px]">
+                    {dailyNotice}
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col flex-1 w-full">
