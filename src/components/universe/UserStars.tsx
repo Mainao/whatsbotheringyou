@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
+import useModalStore from '@/store/useModalStore';
 import useStarsStore from '@/store/useStarsStore';
 
 import type { StarRecord } from '@/types/star';
@@ -305,7 +306,7 @@ export default function UserStars() {
 
         const handleClick = (e: MouseEvent) => {
             // Don't open detail modal while the add-star flow is in progress.
-            if (useStarsStore.getState().selectedStarId !== null) return;
+            if (useModalStore.getState().isOpen) return;
             const id = getHitStarId(e.clientX, e.clientY);
             if (id !== null) useStarsStore.getState().selectStar(id);
         };
@@ -381,8 +382,10 @@ export default function UserStars() {
 
             // Short tap (or non-mobile) → open star detail.
             if (!touchMoved || !isMobileRef.current) {
-                const id = getHitStarId(touch.clientX, touch.clientY);
-                if (id !== null) useStarsStore.getState().selectStar(id);
+                if (!useModalStore.getState().isOpen) {
+                    const id = getHitStarId(touch.clientX, touch.clientY);
+                    if (id !== null) useStarsStore.getState().selectStar(id);
+                }
                 return;
             }
 
