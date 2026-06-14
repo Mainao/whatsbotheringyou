@@ -93,8 +93,8 @@ export default function Step1Draw() {
             const data = (await res.json()) as { valid: boolean; error?: string };
 
             if (data.valid) {
-                setCanvasBlob(exportedBlob);
                 const transparentBlob = await canvas.exportTransparentBlob();
+                setCanvasBlob(transparentBlob);
                 setPreviewBlob(transparentBlob);
                 nextStep();
             } else if (data.error === 'api_error') {

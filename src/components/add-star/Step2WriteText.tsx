@@ -68,6 +68,7 @@ export default function Step2WriteText() {
     const isCrisis = useModalStore((s) => s.isCrisis);
     const close = useModalStore((s) => s.close);
     const addStar = useStarsStore((s) => s.addStar);
+    const setOwnStar = useStarsStore((s) => s.setOwnStar);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
@@ -108,6 +109,7 @@ export default function Step2WriteText() {
                 const result = await submitStar(trimmed, chosenColour, submissionBlob);
                 if (result.ok) {
                     addStar(result.star);
+                    setOwnStar(result.star.id);
                     close();
                     reset();
                 } else if (result.kind === 'already_submitted') {
@@ -136,6 +138,7 @@ export default function Step2WriteText() {
             const result = await submitStar(trimmed, chosenColour, submissionBlob);
             if (result.ok) {
                 addStar(result.star);
+                setOwnStar(result.star.id);
                 close();
                 reset();
             } else if (result.kind === 'already_submitted') {

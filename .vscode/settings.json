@@ -1,0 +1,4 @@
+{
+    "eslint.workingDirectory": [{ "mode": "auto" }],
+    "eslint.validate": ["typescript", "typescriptreact"]
+}

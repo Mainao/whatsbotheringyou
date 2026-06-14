@@ -29,6 +29,8 @@ const ANIM_TOTAL_MS = ANIM_PHASE1_MS + ANIM_PHASE2_MS + ANIM_GLOW_MS;
 // Golden angle in radians — ensures no two stars share the same angular sector,
 // filling gaps evenly as the spiral grows.
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const DRAG_THRESHOLD = 8;
+const INERTIA_FRICTION = 0.94;
 
 function easeOut(t: number): number {
     return 1 - (1 - t) * (1 - t);
@@ -71,6 +73,12 @@ export default function UserStars() {
     const prevStarIdsRef = useRef<Set<string>>(new Set());
     const newStarIdRef = useRef<string | null>(null);
     const fadeStartRef = useRef<number>(-1);
+    const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+    // Pan state — only active on mobile (< 640px wide). Desktop stays at 0,0.
+    const panOffsetRef = useRef({ x: 0, y: 0 });
+    const panVelocityRef = useRef({ x: 0, y: 0 });
+    const inertiaRafIdRef = useRef<number | null>(null);
+    const isMobileRef = useRef(false);
 
     useEffect(() => {
         // Oldest star → index 0 (center). Newest → highest index (outermost ring).
@@ -135,6 +143,7 @@ export default function UserStars() {
             const dpr = window.devicePixelRatio ?? 1;
             cssWidth = window.innerWidth;
             cssHeight = window.innerHeight;
+            isMobileRef.current = window.innerWidth < 640;
             canvas.style.width = `${cssWidth}px`;
             canvas.style.height = `${cssHeight}px`;
             canvas.width = cssWidth * dpr;
@@ -166,6 +175,11 @@ export default function UserStars() {
 
             // Scale spiral spacing to viewport — ~50px per ring on a 900px screen.
             const spacing = Math.min(cssWidth, cssHeight) * 0.055;
+            // Pan offset shifts all stars together (mobile only — zero on desktop).
+            const panX = panOffsetRef.current.x;
+            const panY = panOffsetRef.current.y;
+
+            positionsRef.current.clear();
 
             for (const star of starsRef.current) {
                 const t = elapsed % star.pulseDuration;
@@ -183,8 +197,13 @@ export default function UserStars() {
                 const yOffset =
                     star.driftAmplitude *
                     Math.sin((elapsed / star.driftPeriodY) * Math.PI * 2 + star.driftPhaseY);
-                const x = baseX + xOffset;
-                const y = baseY + yOffset;
+
+                // x/y are screen positions — world position shifted by pan offset.
+                const x = baseX + xOffset + panX;
+                const y = baseY + yOffset + panY;
+
+                // positionsRef stores screen positions so hit testing needs no adjustment.
+                positionsRef.current.set(star.id, { x, y });
 
                 let fadeAlpha = 1;
                 let scale = 1;
@@ -270,10 +289,142 @@ export default function UserStars() {
 
         rafId = requestAnimationFrame(draw);
 
+        const HIT_RADIUS = 20;
+
+        const getHitStarId = (clientX: number, clientY: number): string | null => {
+            const rect = canvas.getBoundingClientRect();
+            const px = clientX - rect.left;
+            const py = clientY - rect.top;
+            for (const [id, pos] of positionsRef.current) {
+                const dx = px - pos.x;
+                const dy = py - pos.y;
+                if (dx * dx + dy * dy <= HIT_RADIUS * HIT_RADIUS) return id;
+            }
+            return null;
+        };
+
+        const handleClick = (e: MouseEvent) => {
+            // Don't open detail modal while the add-star flow is in progress.
+            if (useStarsStore.getState().selectedStarId !== null) return;
+            const id = getHitStarId(e.clientX, e.clientY);
+            if (id !== null) useStarsStore.getState().selectStar(id);
+        };
+
+        const handleMouseMove = (e: MouseEvent) => {
+            canvas.style.cursor =
+                getHitStarId(e.clientX, e.clientY) !== null ? 'pointer' : 'default';
+        };
+
+        // Touch pan state — closure variables shared across all three touch handlers.
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartPanX = 0;
+        let touchStartPanY = 0;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let lastTouchTime = 0;
+        let touchMoved = false;
+
+        const handleTouchStart = (e: TouchEvent) => {
+            const touch = e.touches[0];
+            if (touch === undefined) return;
+
+            if (inertiaRafIdRef.current !== null) {
+                cancelAnimationFrame(inertiaRafIdRef.current);
+                inertiaRafIdRef.current = null;
+            }
+
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchStartPanX = panOffsetRef.current.x;
+            touchStartPanY = panOffsetRef.current.y;
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+            lastTouchTime = performance.now();
+            panVelocityRef.current = { x: 0, y: 0 };
+            touchMoved = false;
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (!isMobileRef.current) return;
+            const touch = e.touches[0];
+            if (touch === undefined) return;
+
+            const now = performance.now();
+            const dt = now - lastTouchTime;
+            if (dt > 0) {
+                panVelocityRef.current = {
+                    x: (touch.clientX - lastTouchX) / dt,
+                    y: (touch.clientY - lastTouchY) / dt,
+                };
+            }
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+            lastTouchTime = now;
+
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+            if (!touchMoved && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
+                touchMoved = true;
+            }
+            if (touchMoved) {
+                panOffsetRef.current = {
+                    x: touchStartPanX + dx,
+                    y: touchStartPanY + dy,
+                };
+            }
+        };
+
+        const handleTouchEnd = (e: TouchEvent) => {
+            const touch = e.changedTouches[0];
+            if (touch === undefined) return;
+
+            // Short tap (or non-mobile) → open star detail.
+            if (!touchMoved || !isMobileRef.current) {
+                const id = getHitStarId(touch.clientX, touch.clientY);
+                if (id !== null) useStarsStore.getState().selectStar(id);
+                return;
+            }
+
+            // Drag end → apply inertia until velocity decays below threshold.
+            let velX = panVelocityRef.current.x * 16;
+            let velY = panVelocityRef.current.y * 16;
+
+            const applyInertia = () => {
+                velX *= INERTIA_FRICTION;
+                velY *= INERTIA_FRICTION;
+                panOffsetRef.current = {
+                    x: panOffsetRef.current.x + velX,
+                    y: panOffsetRef.current.y + velY,
+                };
+                if (Math.abs(velX) > 0.3 || Math.abs(velY) > 0.3) {
+                    inertiaRafIdRef.current = requestAnimationFrame(applyInertia);
+                } else {
+                    inertiaRafIdRef.current = null;
+                }
+            };
+
+            inertiaRafIdRef.current = requestAnimationFrame(applyInertia);
+        };
+
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', handleTouchEnd);
         window.addEventListener('resize', setSize);
 
         return () => {
             cancelAnimationFrame(rafId);
+            if (inertiaRafIdRef.current !== null) {
+                cancelAnimationFrame(inertiaRafIdRef.current);
+                inertiaRafIdRef.current = null;
+            }
+            canvas.removeEventListener('click', handleClick);
+            canvas.removeEventListener('mousemove', handleMouseMove);
+            canvas.removeEventListener('touchstart', handleTouchStart);
+            canvas.removeEventListener('touchmove', handleTouchMove);
+            canvas.removeEventListener('touchend', handleTouchEnd);
             window.removeEventListener('resize', setSize);
         };
     }, []);
@@ -282,7 +433,7 @@ export default function UserStars() {
         <canvas
             ref={canvasRef}
             aria-label="Stars shared by the community"
-            className="absolute inset-0 pointer-events-none"
+            className="absolute inset-0"
             style={{ zIndex: 1, touchAction: 'none' }}
         />
     );

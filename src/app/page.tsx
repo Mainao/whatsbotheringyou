@@ -20,6 +20,7 @@ const Step2WriteText = dynamic(() => import('@/components/add-star/Step2WriteTex
     ssr: false,
 });
 const CrisisScreen = dynamic(() => import('@/components/crisis/CrisisScreen'), { ssr: false });
+const StarDetail = dynamic(() => import('@/components/star-detail/StarDetail'), { ssr: false });
 
 export default function Home() {
     const open = useModalStore((s) => s.open);
@@ -50,10 +51,10 @@ export default function Home() {
             <UniverseCanvas />
 
             <div className="fixed top-4 left-4 z-20">
-                <p className="text-2xl font-semibold tracking-widest uppercase text-text-muted font-heading">
+                <p className="text-base sm:text-2xl font-semibold tracking-widest uppercase text-text-muted font-heading">
                     What&apos;s bothering you
                 </p>
-                <p className="text-sm text-text-muted/60 tracking-[0.21em] mt-0.5">
+                <p className="text-xs sm:text-sm text-text-muted/60 tracking-[0.21em] mt-0.5">
                     Release your worry to the universe
                 </p>
             </div>
@@ -66,10 +67,11 @@ export default function Home() {
                 className="fixed top-4 right-4 z-20 gap-1.5 px-[18px] py-[10px] border-brand/40 backdrop-blur hover:border-brand/80 bg-gradient-to-br from-bg-surface/90 via-bg-raised/80 to-brand/20 hover:from-bg-surface hover:to-brand/30"
             >
                 <Star size={14} />
-                Add Star
+                <span className="hidden sm:inline">Add Star</span>
             </Button>
 
             <PresenceCounter count={starCount} />
+            <StarDetail />
 
             <Modal isOpen={isOpen} onClose={handleClose} labelId="add-star-title">
                 <Button
