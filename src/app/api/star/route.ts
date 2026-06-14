@@ -69,8 +69,29 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ error: 'worryText too long' }, { status: 400 });
         }
 
-        if (typeof starColor !== 'string' || starColor.trim().length === 0) {
-            return Response.json({ error: 'starColor is required' }, { status: 400 });
+        if (typeof starColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(starColor.trim())) {
+            return Response.json(
+                { error: 'starColor must be a 6-digit hex color' },
+                { status: 400 },
+            );
+        }
+
+        const todayMidnightUTC = new Date();
+        todayMidnightUTC.setUTCHours(0, 0, 0, 0);
+
+        const existing = await prisma.star.findFirst({
+            where: { authorId: ip, createdAt: { gte: todayMidnightUTC } },
+            select: { id: true },
+        });
+
+        if (existing !== null) {
+            return Response.json(
+                {
+                    error: 'already_submitted',
+                    message: "You've already released your worry today. Come back tomorrow ✨",
+                },
+                { status: 429 },
+            );
         }
 
         let drawingData: string | null = null;
