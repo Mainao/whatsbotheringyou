@@ -69,8 +69,11 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ error: 'worryText too long' }, { status: 400 });
         }
 
-        if (typeof starColor !== 'string' || starColor.trim().length === 0) {
-            return Response.json({ error: 'starColor is required' }, { status: 400 });
+        if (typeof starColor !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(starColor.trim())) {
+            return Response.json(
+                { error: 'starColor must be a 6-digit hex color' },
+                { status: 400 },
+            );
         }
 
         const todayMidnightUTC = new Date();
