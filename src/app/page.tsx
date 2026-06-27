@@ -54,7 +54,7 @@ export default function Home() {
                 <p className="text-base sm:text-2xl font-semibold tracking-widest uppercase text-text-muted font-heading">
                     What&apos;s bothering you
                 </p>
-                <p className="text-xs sm:text-sm text-text-muted/60 tracking-[0.21em] mt-0.5">
+                <p className="text-xs sm:text-sm text-muted/60 tracking-[0.21em] mt-0.5">
                     Release your worry to the universe
                 </p>
             </div>
