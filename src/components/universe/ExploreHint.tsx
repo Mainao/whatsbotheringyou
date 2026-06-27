@@ -25,7 +25,7 @@ export default function ExploreHint() {
                 transition: 'opacity 1s ease-out',
             }}
         >
-            <p className="text-xs text-text-muted/60 tracking-widest">Drag to explore ✦</p>
+            <p className="text-xs text-muted/60 tracking-widest">Drag to explore ✦</p>
         </div>
     );
 }
