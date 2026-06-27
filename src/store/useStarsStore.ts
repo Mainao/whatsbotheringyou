@@ -6,18 +6,22 @@ interface StarsStore {
     stars: StarRecord[];
     selectedStarId: string | null;
     ownStarId: string | null;
+    pendingFadeInId: string | null;
     fetchStars: () => Promise<void>;
     fetchDrawings: () => Promise<void>;
     addStar: (star: StarRecord) => void;
     selectStar: (id: string) => void;
     clearSelectedStar: () => void;
     setOwnStar: (id: string) => void;
+    triggerFadeIn: (id: string) => void;
+    consumeFadeIn: () => void;
 }
 
 const useStarsStore = create<StarsStore>()((set) => ({
     stars: [],
     selectedStarId: null,
     ownStarId: null,
+    pendingFadeInId: null,
     fetchStars: async () => {
         try {
             const res = await fetch('/api/stars?drawings=false');
@@ -42,6 +46,8 @@ const useStarsStore = create<StarsStore>()((set) => ({
     selectStar: (id) => set({ selectedStarId: id }),
     clearSelectedStar: () => set({ selectedStarId: null }),
     setOwnStar: (id) => set({ ownStarId: id }),
+    triggerFadeIn: (id) => set({ pendingFadeInId: id }),
+    consumeFadeIn: () => set({ pendingFadeInId: null }),
 }));
 
 export default useStarsStore;

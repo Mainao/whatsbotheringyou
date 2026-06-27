@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
+import useCameraStore from '@/store/useCameraStore';
 import useModalStore from '@/store/useModalStore';
 import useStarsStore from '@/store/useStarsStore';
 
@@ -31,7 +32,11 @@ const ANIM_TOTAL_MS = ANIM_PHASE1_MS + ANIM_PHASE2_MS + ANIM_GLOW_MS;
 // filling gaps evenly as the spiral grows.
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const DRAG_THRESHOLD = 8;
-const INERTIA_FRICTION = 0.94;
+const INERTIA_FRICTION = 0.92;
+const SPIRAL_SPACING = 100; // world-space px between rings
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 2.5;
+const CULL_MARGIN = STAR_SIZE * 2;
 
 function easeOut(t: number): number {
     return 1 - (1 - t) * (1 - t);
@@ -39,6 +44,10 @@ function easeOut(t: number): number {
 
 function easeIn(t: number): number {
     return t * t;
+}
+
+function clampZoom(z: number): number {
+    return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z));
 }
 
 function starToCanvas(star: StarRecord, index: number): CanvasStar {
@@ -75,11 +84,22 @@ export default function UserStars() {
     const newStarIdRef = useRef<string | null>(null);
     const fadeStartRef = useRef<number>(-1);
     const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
-    // Pan state — only active on mobile (< 640px wide). Desktop stays at 0,0.
-    const panOffsetRef = useRef({ x: 0, y: 0 });
-    const panVelocityRef = useRef({ x: 0, y: 0 });
+
+    // Camera state — local refs for 60fps draw loop; synced to store for cross-component reads
+    const panXRef = useRef(0);
+    const panYRef = useRef(0);
+    const zoomRef = useRef(1);
+
+    // Inertia
+    const velXRef = useRef(0);
+    const velYRef = useRef(0);
     const inertiaRafIdRef = useRef<number | null>(null);
-    const isMobileRef = useRef(false);
+
+    // Pointer tracking — keyed by pointerId
+    const activePointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+    const pointerDownPosRef = useRef({ x: 0, y: 0 });
+    const didDragRef = useRef(false);
+    const prevPointerTimeRef = useRef(0);
 
     useEffect(() => {
         // Oldest star → index 0 (center). Newest → highest index (outermost ring).
@@ -140,11 +160,17 @@ export default function UserStars() {
         let cssWidth = window.innerWidth;
         let cssHeight = window.innerHeight;
 
+        // Desktop starts more zoomed out to show more of the universe at once
+        const initialZoom = window.innerWidth >= 640 ? 0.7 : 1.0;
+        zoomRef.current = initialZoom;
+        panXRef.current = 0;
+        panYRef.current = 0;
+        useCameraStore.getState().setCamera(0, 0, initialZoom);
+
         const setSize = () => {
             const dpr = window.devicePixelRatio ?? 1;
             cssWidth = window.innerWidth;
             cssHeight = window.innerHeight;
-            isMobileRef.current = window.innerWidth < 640;
             canvas.style.width = `${cssWidth}px`;
             canvas.style.height = `${cssHeight}px`;
             canvas.width = cssWidth * dpr;
@@ -168,17 +194,24 @@ export default function UserStars() {
             if (startTime === 0) startTime = timestamp;
             const elapsed = timestamp - startTime;
 
+            // Consume a directly-triggered fade (set by triggerFadeIn after submission).
+            // Checked before the useEffect-based guard so the first frame is clean.
+            const pendingId = useStarsStore.getState().pendingFadeInId;
+            if (pendingId !== null) {
+                newStarIdRef.current = pendingId;
+                fadeStartRef.current = -1;
+                useStarsStore.getState().consumeFadeIn();
+            }
+
             if (newStarIdRef.current !== null && fadeStartRef.current === -1) {
                 fadeStartRef.current = timestamp;
             }
 
             ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-            // Scale spiral spacing to viewport — ~50px per ring on a 900px screen.
-            const spacing = Math.min(cssWidth, cssHeight) * 0.055;
-            // Pan offset shifts all stars together (mobile only — zero on desktop).
-            const panX = panOffsetRef.current.x;
-            const panY = panOffsetRef.current.y;
+            const panX = panXRef.current;
+            const panY = panYRef.current;
+            const zoom = zoomRef.current;
 
             positionsRef.current.clear();
 
@@ -188,53 +221,82 @@ export default function UserStars() {
                 const sinVal = (Math.sin(phase) + 1) / 2;
                 const opacity = 0.45 + 0.3 * sinVal;
 
-                const spiralRadius = spacing * star.spiralSqrtIndex;
-                const baseX = cssWidth / 2 + spiralRadius * Math.cos(star.spiralAngle);
-                const baseY = cssHeight / 2 + spiralRadius * Math.sin(star.spiralAngle);
+                // World-space position — origin is the universe centre
+                const spiralRadius = SPIRAL_SPACING * star.spiralSqrtIndex;
+                const worldBaseX = spiralRadius * Math.cos(star.spiralAngle);
+                const worldBaseY = spiralRadius * Math.sin(star.spiralAngle);
 
-                const xOffset =
+                const driftX =
                     star.driftAmplitude *
                     Math.sin((elapsed / star.driftPeriodX) * Math.PI * 2 + star.driftPhaseX);
-                const yOffset =
+                const driftY =
                     star.driftAmplitude *
                     Math.sin((elapsed / star.driftPeriodY) * Math.PI * 2 + star.driftPhaseY);
 
-                // x/y are screen positions — world position shifted by pan offset.
-                const x = baseX + xOffset + panX;
-                const y = baseY + yOffset + panY;
+                const worldX = worldBaseX + driftX;
+                const worldY = worldBaseY + driftY;
 
-                // positionsRef stores screen positions so hit testing needs no adjustment.
+                // Camera transform: world → screen
+                const x = cssWidth / 2 + (worldX - panX) * zoom;
+                const y = cssHeight / 2 + (worldY - panY) * zoom;
+
+                // Store screen position for hit testing (all stars, even off-screen)
                 positionsRef.current.set(star.id, { x, y });
+
+                // Diagnostic: confirm animation triggers — placed before culling so it fires
+                // even when the new star is off-screen. Remove after debugging.
+                if (star.id === newStarIdRef.current && timestamp - fadeStartRef.current < 1) {
+                    // eslint-disable-next-line no-console
+                    console.log('[StarFade] Animation triggered', {
+                        starId: star.id,
+                        timestamp: Date.now(),
+                    });
+                }
+
+                // Skip drawing stars outside the viewport (plus a small margin for glows)
+                if (
+                    x < -CULL_MARGIN ||
+                    x > cssWidth + CULL_MARGIN ||
+                    y < -CULL_MARGIN ||
+                    y > cssHeight + CULL_MARGIN
+                ) {
+                    continue;
+                }
 
                 let fadeAlpha = 1;
                 let scale = 1;
                 let glowAlpha = 0;
 
                 if (star.id === newStarIdRef.current) {
-                    const t = timestamp - fadeStartRef.current;
-                    if (t >= ANIM_TOTAL_MS) {
+                    const animT = timestamp - fadeStartRef.current;
+                    if (animT >= ANIM_TOTAL_MS) {
                         newStarIdRef.current = null;
                     } else {
-                        if (t < ANIM_PHASE1_MS) {
-                            const p = t / ANIM_PHASE1_MS;
+                        if (animT < ANIM_PHASE1_MS) {
+                            // Phase 1: fade in + scale up — glow grows alongside the star
+                            const p = animT / ANIM_PHASE1_MS;
                             fadeAlpha = easeOut(p);
                             scale = 0.3 + 0.9 * easeOut(p);
-                        } else if (t < ANIM_PHASE1_MS + ANIM_PHASE2_MS) {
-                            const p = (t - ANIM_PHASE1_MS) / ANIM_PHASE2_MS;
+                            glowAlpha = easeOut(p);
+                        } else if (animT < ANIM_PHASE1_MS + ANIM_PHASE2_MS) {
+                            // Phase 2: settle to 1× — glow holds at peak
+                            const p = (animT - ANIM_PHASE1_MS) / ANIM_PHASE2_MS;
                             scale = 1.2 - 0.2 * easeIn(p);
-                        }
-                        const glowStart = ANIM_PHASE1_MS + ANIM_PHASE2_MS;
-                        if (t >= glowStart) {
-                            glowAlpha = 1 - (t - glowStart) / ANIM_GLOW_MS;
+                            glowAlpha = 1;
+                        } else {
+                            // Phase 3: star is settled, glow fades out
+                            const glowElapsed = animT - ANIM_PHASE1_MS - ANIM_PHASE2_MS;
+                            glowAlpha = Math.max(0, 1 - glowElapsed / ANIM_GLOW_MS);
                         }
                     }
                 }
 
                 ctx.save();
-                ctx.globalAlpha = opacity * fadeAlpha;
+                // During scale-in phases the star bursts in at full brightness;
+                // the glow covering the settling transition masks the opacity handoff.
+                ctx.globalAlpha = scale !== 1 ? fadeAlpha : opacity * fadeAlpha;
 
                 // Translate to star position so scale pivots on the star centre.
-                // For non-animated stars scale=1 and cx/cy equal x/y — no visual change.
                 if (scale !== 1) {
                     ctx.translate(x, y);
                     ctx.scale(scale, scale);
@@ -242,8 +304,7 @@ export default function UserStars() {
                 const cx = scale !== 1 ? 0 : x;
                 const cy = scale !== 1 ? 0 : y;
 
-                // Soft circular glow — radial gradient so the halo is always a circle,
-                // independent of the drawn shape.
+                // Soft circular glow
                 const glowRadius = STAR_SIZE * 1.2;
                 const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
                 gradient.addColorStop(0, `${star.color}40`);
@@ -268,14 +329,16 @@ export default function UserStars() {
 
                 ctx.restore();
 
-                // Landing glow — white radial burst drawn at true position after scale is gone.
+                // Landing glow — white radial burst, grows with the star in phase 1,
+                // holds at peak in phase 2, then fades over 600 ms in phase 3.
                 if (glowAlpha > 0) {
                     ctx.save();
-                    ctx.globalAlpha = glowAlpha * 0.7;
-                    const landingRadius = STAR_SIZE * 3;
+                    ctx.globalAlpha = glowAlpha;
+                    const landingRadius = STAR_SIZE * 5;
                     const landingGradient = ctx.createRadialGradient(x, y, 0, x, y, landingRadius);
-                    landingGradient.addColorStop(0, 'rgba(255,255,255,0.9)');
-                    landingGradient.addColorStop(0.35, 'rgba(255,255,255,0.3)');
+                    landingGradient.addColorStop(0, 'rgba(255,255,255,1)');
+                    landingGradient.addColorStop(0.25, 'rgba(255,255,255,0.5)');
+                    landingGradient.addColorStop(0.6, 'rgba(255,255,255,0.1)');
                     landingGradient.addColorStop(1, 'rgba(255,255,255,0)');
                     ctx.beginPath();
                     ctx.arc(x, y, landingRadius, 0, Math.PI * 2);
@@ -290,7 +353,7 @@ export default function UserStars() {
 
         rafId = requestAnimationFrame(draw);
 
-        const HIT_RADIUS = 20;
+        const HIT_RADIUS = 24;
 
         const getHitStarId = (clientX: number, clientY: number): string | null => {
             const rect = canvas.getBoundingClientRect();
@@ -304,117 +367,182 @@ export default function UserStars() {
             return null;
         };
 
-        const handleClick = (e: MouseEvent) => {
-            // Don't open detail modal while the add-star flow is in progress.
-            if (useModalStore.getState().isOpen) return;
-            const id = getHitStarId(e.clientX, e.clientY);
-            if (id !== null) useStarsStore.getState().selectStar(id);
+        const syncCamera = () => {
+            useCameraStore.getState().setCamera(panXRef.current, panYRef.current, zoomRef.current);
         };
 
-        const handleMouseMove = (e: MouseEvent) => {
-            canvas.style.cursor =
-                getHitStarId(e.clientX, e.clientY) !== null ? 'pointer' : 'default';
-        };
+        // --- Pointer event handlers (pan on both desktop and mobile) ---
 
-        // Touch pan state — closure variables shared across all three touch handlers.
-        let touchStartX = 0;
-        let touchStartY = 0;
-        let touchStartPanX = 0;
-        let touchStartPanY = 0;
-        let lastTouchX = 0;
-        let lastTouchY = 0;
-        let lastTouchTime = 0;
-        let touchMoved = false;
-
-        const handleTouchStart = (e: TouchEvent) => {
-            const touch = e.touches[0];
-            if (touch === undefined) return;
+        const handlePointerDown = (e: PointerEvent) => {
+            canvas.setPointerCapture(e.pointerId);
+            activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
             if (inertiaRafIdRef.current !== null) {
                 cancelAnimationFrame(inertiaRafIdRef.current);
                 inertiaRafIdRef.current = null;
             }
 
-            touchStartX = touch.clientX;
-            touchStartY = touch.clientY;
-            touchStartPanX = panOffsetRef.current.x;
-            touchStartPanY = panOffsetRef.current.y;
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-            lastTouchTime = performance.now();
-            panVelocityRef.current = { x: 0, y: 0 };
-            touchMoved = false;
-        };
-
-        const handleTouchMove = (e: TouchEvent) => {
-            if (!isMobileRef.current) return;
-            const touch = e.touches[0];
-            if (touch === undefined) return;
-
-            const now = performance.now();
-            const dt = now - lastTouchTime;
-            if (dt > 0) {
-                panVelocityRef.current = {
-                    x: (touch.clientX - lastTouchX) / dt,
-                    y: (touch.clientY - lastTouchY) / dt,
-                };
-            }
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-            lastTouchTime = now;
-
-            const dx = touch.clientX - touchStartX;
-            const dy = touch.clientY - touchStartY;
-            if (!touchMoved && Math.sqrt(dx * dx + dy * dy) > DRAG_THRESHOLD) {
-                touchMoved = true;
-            }
-            if (touchMoved) {
-                panOffsetRef.current = {
-                    x: touchStartPanX + dx,
-                    y: touchStartPanY + dy,
-                };
+            if (activePointersRef.current.size === 1) {
+                pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
+                didDragRef.current = false;
+                prevPointerTimeRef.current = performance.now();
+                velXRef.current = 0;
+                velYRef.current = 0;
             }
         };
 
-        const handleTouchEnd = (e: TouchEvent) => {
-            const touch = e.changedTouches[0];
-            if (touch === undefined) return;
+        const handlePointerMove = (e: PointerEvent) => {
+            const prev = activePointersRef.current.get(e.pointerId);
+            if (prev === undefined) return;
 
-            // Short tap (or non-mobile) → open star detail.
-            if (!touchMoved || !isMobileRef.current) {
+            if (activePointersRef.current.size === 1) {
+                const dx = e.clientX - prev.x;
+                const dy = e.clientY - prev.y;
+
+                activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+                const now = performance.now();
+                const dt = now - prevPointerTimeRef.current;
+                if (dt > 0) {
+                    velXRef.current = dx / dt;
+                    velYRef.current = dy / dt;
+                }
+                prevPointerTimeRef.current = now;
+
+                const totalDx = e.clientX - pointerDownPosRef.current.x;
+                const totalDy = e.clientY - pointerDownPosRef.current.y;
+                if (
+                    !didDragRef.current &&
+                    Math.sqrt(totalDx * totalDx + totalDy * totalDy) > DRAG_THRESHOLD
+                ) {
+                    didDragRef.current = true;
+                }
+
+                if (didDragRef.current) {
+                    panXRef.current -= dx / zoomRef.current;
+                    panYRef.current -= dy / zoomRef.current;
+                    syncCamera();
+                }
+            } else if (activePointersRef.current.size === 2) {
+                // Capture old positions before updating this pointer
+                const oldArr = Array.from(activePointersRef.current.values());
+                activePointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                const newArr = Array.from(activePointersRef.current.values());
+
+                const old1 = oldArr[0];
+                const old2 = oldArr[1];
+                const new1 = newArr[0];
+                const new2 = newArr[1];
+                if (
+                    old1 === undefined ||
+                    old2 === undefined ||
+                    new1 === undefined ||
+                    new2 === undefined
+                )
+                    return;
+
+                const oldDist = Math.sqrt((old2.x - old1.x) ** 2 + (old2.y - old1.y) ** 2);
+                if (oldDist === 0) return;
+
+                const newDist = Math.sqrt((new2.x - new1.x) ** 2 + (new2.y - new1.y) ** 2);
+
+                // Midpoints in screen space
+                const oldMidX = (old1.x + old2.x) / 2;
+                const oldMidY = (old1.y + old2.y) / 2;
+                const newMidX = (new1.x + new2.x) / 2;
+                const newMidY = (new1.y + new2.y) / 2;
+
+                const newZoom = clampZoom(zoomRef.current * (newDist / oldDist));
+
+                // Keep the world point under the old midpoint fixed at the new midpoint
+                const worldMidX = (oldMidX - cssWidth / 2) / zoomRef.current + panXRef.current;
+                const worldMidY = (oldMidY - cssHeight / 2) / zoomRef.current + panYRef.current;
+                panXRef.current = worldMidX - (newMidX - cssWidth / 2) / newZoom;
+                panYRef.current = worldMidY - (newMidY - cssHeight / 2) / newZoom;
+                zoomRef.current = newZoom;
+                didDragRef.current = true;
+
+                syncCamera();
+            }
+        };
+
+        const handlePointerUp = (e: PointerEvent) => {
+            const wasSingle = activePointersRef.current.size === 1;
+            activePointersRef.current.delete(e.pointerId);
+
+            if (!wasSingle) return;
+
+            if (!didDragRef.current) {
+                // Tap — open star detail if a star was hit
                 if (!useModalStore.getState().isOpen) {
-                    const id = getHitStarId(touch.clientX, touch.clientY);
+                    const id = getHitStarId(e.clientX, e.clientY);
                     if (id !== null) useStarsStore.getState().selectStar(id);
                 }
                 return;
             }
 
-            // Drag end → apply inertia until velocity decays below threshold.
-            let velX = panVelocityRef.current.x * 16;
-            let velY = panVelocityRef.current.y * 16;
+            // Drag ended — apply momentum inertia until velocity decays
+            let velX = velXRef.current * 16;
+            let velY = velYRef.current * 16;
 
-            const applyInertia = () => {
+            // function declaration allows self-reference without forward-ref TypeScript error
+            function applyInertia() {
                 velX *= INERTIA_FRICTION;
                 velY *= INERTIA_FRICTION;
-                panOffsetRef.current = {
-                    x: panOffsetRef.current.x + velX,
-                    y: panOffsetRef.current.y + velY,
-                };
+                panXRef.current -= velX / zoomRef.current;
+                panYRef.current -= velY / zoomRef.current;
+                syncCamera();
                 if (Math.abs(velX) > 0.3 || Math.abs(velY) > 0.3) {
                     inertiaRafIdRef.current = requestAnimationFrame(applyInertia);
                 } else {
                     inertiaRafIdRef.current = null;
                 }
-            };
+            }
 
             inertiaRafIdRef.current = requestAnimationFrame(applyInertia);
         };
 
-        canvas.addEventListener('click', handleClick);
+        const handlePointerCancel = () => {
+            activePointersRef.current.clear();
+            if (inertiaRafIdRef.current !== null) {
+                cancelAnimationFrame(inertiaRafIdRef.current);
+                inertiaRafIdRef.current = null;
+            }
+        };
+
+        // --- Wheel zoom (desktop) ---
+
+        const handleWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const factor = 1 - e.deltaY * 0.001;
+            const newZoom = clampZoom(zoomRef.current * factor);
+
+            // Zoom toward cursor position
+            const rect = canvas.getBoundingClientRect();
+            const cursorX = e.clientX - rect.left;
+            const cursorY = e.clientY - rect.top;
+            const worldCursorX = (cursorX - cssWidth / 2) / zoomRef.current + panXRef.current;
+            const worldCursorY = (cursorY - cssHeight / 2) / zoomRef.current + panYRef.current;
+            panXRef.current = worldCursorX - (cursorX - cssWidth / 2) / newZoom;
+            panYRef.current = worldCursorY - (cursorY - cssHeight / 2) / newZoom;
+            zoomRef.current = newZoom;
+
+            syncCamera();
+        };
+
+        // --- Cursor hover (desktop) ---
+
+        const handleMouseMove = (e: MouseEvent) => {
+            canvas.style.cursor =
+                getHitStarId(e.clientX, e.clientY) !== null ? 'pointer' : 'default';
+        };
+
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', handlePointerUp);
+        canvas.addEventListener('pointercancel', handlePointerCancel);
+        canvas.addEventListener('wheel', handleWheel, { passive: false });
         canvas.addEventListener('mousemove', handleMouseMove);
-        canvas.addEventListener('touchstart', handleTouchStart);
-        canvas.addEventListener('touchmove', handleTouchMove);
-        canvas.addEventListener('touchend', handleTouchEnd);
         window.addEventListener('resize', setSize);
 
         return () => {
@@ -423,11 +551,12 @@ export default function UserStars() {
                 cancelAnimationFrame(inertiaRafIdRef.current);
                 inertiaRafIdRef.current = null;
             }
-            canvas.removeEventListener('click', handleClick);
+            canvas.removeEventListener('pointerdown', handlePointerDown);
+            canvas.removeEventListener('pointermove', handlePointerMove);
+            canvas.removeEventListener('pointerup', handlePointerUp);
+            canvas.removeEventListener('pointercancel', handlePointerCancel);
+            canvas.removeEventListener('wheel', handleWheel);
             canvas.removeEventListener('mousemove', handleMouseMove);
-            canvas.removeEventListener('touchstart', handleTouchStart);
-            canvas.removeEventListener('touchmove', handleTouchMove);
-            canvas.removeEventListener('touchend', handleTouchEnd);
             window.removeEventListener('resize', setSize);
         };
     }, []);
