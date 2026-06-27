@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react';
 
 import { ANIMATION } from '@/constants/animation';
 
+import useCameraStore from '@/store/useCameraStore';
+
 interface Star {
     xRatio: number;
     yRatio: number;
@@ -100,6 +102,11 @@ export default function AmbientStars() {
             ctx.globalAlpha = fadeAlpha;
             ctx.clearRect(0, 0, cssWidth, cssHeight);
 
+            const { panX, panY, zoom } = useCameraStore.getState();
+            const PARALLAX = 0.12;
+            const parallaxX = -panX * zoom * PARALLAX;
+            const parallaxY = -panY * zoom * PARALLAX;
+
             for (const star of stars) {
                 const t = elapsed % star.pulseDuration;
                 const phase = (t / star.pulseDuration) * Math.PI * 2 + star.phaseOffset;
@@ -108,8 +115,8 @@ export default function AmbientStars() {
 
                 ctx.beginPath();
                 ctx.arc(
-                    star.xRatio * cssWidth,
-                    star.yRatio * cssHeight,
+                    star.xRatio * cssWidth + parallaxX,
+                    star.yRatio * cssHeight + parallaxY,
                     star.radius,
                     0,
                     Math.PI * 2,

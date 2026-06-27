@@ -1,4 +1,5 @@
 import AmbientStars from './AmbientStars';
+import ExploreHint from './ExploreHint';
 import ShootingStar from './ShootingStar';
 import styles from './UniverseCanvas.module.css';
 import UserStars from './UserStars';
@@ -17,6 +18,7 @@ export default function UniverseCanvas() {
             <AmbientStars />
             <UserStars />
             <ShootingStar />
+            <ExploreHint />
         </div>
     );
 }
