@@ -48,15 +48,6 @@ body {
     }
 }
 
-@keyframes backdrop-close {
-    from {
-        opacity: 1;
-    }
-    to {
-        opacity: 0;
-    }
-}
-
 dialog.dialog-opening {
     animation: dialog-open 0.3s ease-out forwards;
 }
@@ -72,9 +63,8 @@ dialog.dialog-opening::backdrop {
 }
 
 dialog.dialog-closing::backdrop {
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    animation: backdrop-close 0.28s ease-in forwards;
+    background: transparent;
+    backdrop-filter: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
