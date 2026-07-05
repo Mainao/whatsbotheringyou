@@ -79,6 +79,23 @@ export default function Step2WriteText() {
         setIsValidating(true);
         setValidationError(null);
 
+        // Snapshot the star count before the async POST so the new star lands at
+        // the correct spiral index even if another star arrives concurrently.
+        const finalizeSubmission = async () => {
+            const newIndex = useStarsStore.getState().stars.length;
+            const result = await submitStar(trimmed, chosenColour, submissionBlob);
+            if (result.ok) {
+                const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
+                addStar(result.star);
+                setOwnStar(result.star.id);
+                requestPan(worldX, worldY, result.star.id);
+                close();
+                reset();
+            } else {
+                setValidationError(result.message);
+            }
+        };
+
         try {
             const response = await fetch('/api/validate-text', {
                 method: 'POST',
@@ -91,18 +108,7 @@ export default function Step2WriteText() {
             };
 
             if (data.status === 'valid') {
-                const newIndex = useStarsStore.getState().stars.length;
-                const result = await submitStar(trimmed, chosenColour, submissionBlob);
-                if (result.ok) {
-                    const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
-                    addStar(result.star);
-                    setOwnStar(result.star.id);
-                    requestPan(worldX, worldY, result.star.id);
-                    close();
-                    reset();
-                } else {
-                    setValidationError(result.message);
-                }
+                await finalizeSubmission();
             } else if (data.status === 'crisis') {
                 triggerCrisis();
             } else {
@@ -121,18 +127,7 @@ export default function Step2WriteText() {
                 }
             }
         } catch {
-            const newIndex = useStarsStore.getState().stars.length;
-            const result = await submitStar(trimmed, chosenColour, submissionBlob);
-            if (result.ok) {
-                const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
-                addStar(result.star);
-                setOwnStar(result.star.id);
-                requestPan(worldX, worldY, result.star.id);
-                close();
-                reset();
-            } else {
-                setValidationError(result.message);
-            }
+            await finalizeSubmission();
         } finally {
             setIsValidating(false);
             setWorryText('');
