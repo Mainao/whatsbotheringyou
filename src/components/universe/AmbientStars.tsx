@@ -2,45 +2,20 @@
 
 import { useEffect, useRef } from 'react';
 
-import { ANIMATION } from '@/constants/animation';
-
+import { generateSectorStars, getVisibleSectorRange, sectorKey } from '@/lib/sectorStars';
 import useCameraStore from '@/store/useCameraStore';
 
-interface Star {
-    xRatio: number;
-    yRatio: number;
-    radius: number;
-    baseOpacity: number;
-    pulseDuration: number;
-    phaseOffset: number;
-}
+import type { SectorStar } from '@/lib/sectorStars';
 
-function generateStars(count: number): Star[] {
-    const stars: Star[] = [];
-    let i = 0;
-
-    while (i < count) {
-        const groupSize = Math.floor(Math.random() * 3) + 3;
-        const groupDuration = 3000 + Math.random() * 4000;
-        const groupBasePhase = Math.random() * Math.PI * 2;
-
-        for (let g = 0; g < groupSize && i < count; g++, i++) {
-            stars.push({
-                xRatio: Math.random(),
-                yRatio: Math.random(),
-                radius: 1 + Math.random(),
-                baseOpacity: 0.08 + Math.random() * 0.37,
-                pulseDuration: groupDuration + (Math.random() - 0.5) * 500,
-                phaseOffset: groupBasePhase + (Math.random() - 0.5) * 0.3,
-            });
-        }
-    }
-
-    return stars;
-}
+// Sectors are unloaded once they fall this many sectors beyond the culling buffer.
+const UNLOAD_MARGIN = 2;
+const FADE_IN_MS = 1000;
 
 export default function AmbientStars() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    // On-demand sector cache — keyed by "sectorX,sectorY". Never persisted to state:
+    // entries are computed when a sector enters the viewport and dropped when it leaves.
+    const sectorCacheRef = useRef<Map<string, SectorStar[]>>(new Map());
 
     useEffect(() => {
         const canvas = canvasRef.current;
@@ -71,6 +46,9 @@ export default function AmbientStars() {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
+        // Local handle to the stable sector cache — safe to reference in cleanup.
+        const sectorCache = sectorCacheRef.current;
+
         const setVh = () => {
             const vh = window.innerHeight * 0.01;
             document.documentElement.style.setProperty('--vh', `${vh}px`);
@@ -78,64 +56,104 @@ export default function AmbientStars() {
 
         setVh();
 
-        const count =
-            ANIMATION.AMBIENT_STAR_COUNT_MIN +
-            Math.floor(
-                Math.random() *
-                    (ANIMATION.AMBIENT_STAR_COUNT_MAX - ANIMATION.AMBIENT_STAR_COUNT_MIN + 1),
-            );
-
-        const stars = generateStars(count);
-
         let rafId: number;
-        let startTime = 0;
         let fadeStartTime = 0;
-        const FADE_IN_MS = 1000;
+
+        // Last-rendered camera + viewport — used to skip redraws when nothing changed.
+        let lastPanX = Number.NaN;
+        let lastPanY = Number.NaN;
+        let lastZoom = Number.NaN;
+        let lastWidth = 0;
+        let lastHeight = 0;
+        let needsRedraw = true;
+
+        const getSector = (sx: number, sy: number): SectorStar[] => {
+            const key = sectorKey(sx, sy);
+            const cached = sectorCache.get(key);
+            if (cached !== undefined) return cached;
+            const generated = generateSectorStars(sx, sy);
+            sectorCache.set(key, generated);
+            return generated;
+        };
 
         const draw = (timestamp: number) => {
-            if (startTime === 0) startTime = timestamp;
-            const elapsed = timestamp - startTime;
+            const { panX, panY, zoom } = useCameraStore.getState();
 
             const fadeAlpha =
                 fadeStartTime === 0 ? 0 : Math.min(1, (timestamp - fadeStartTime) / FADE_IN_MS);
+            const isFading = fadeAlpha < 1;
 
-            ctx.globalAlpha = fadeAlpha;
+            const cameraChanged =
+                panX !== lastPanX ||
+                panY !== lastPanY ||
+                zoom !== lastZoom ||
+                cssWidth !== lastWidth ||
+                cssHeight !== lastHeight;
+
+            // Skip the frame entirely when the camera is still, the fade is done, and
+            // no external redraw was requested — nothing on screen would change.
+            if (!cameraChanged && !isFading && !needsRedraw) {
+                rafId = requestAnimationFrame(draw);
+                return;
+            }
+
+            lastPanX = panX;
+            lastPanY = panY;
+            lastZoom = zoom;
+            lastWidth = cssWidth;
+            lastHeight = cssHeight;
+            needsRedraw = false;
+
+            const range = getVisibleSectorRange(panX, panY, zoom, cssWidth, cssHeight, 1);
+
+            // Drop sectors that have drifted well outside the viewport to bound memory.
+            for (const key of sectorCache.keys()) {
+                const comma = key.indexOf(',');
+                const sx = Number(key.slice(0, comma));
+                const sy = Number(key.slice(comma + 1));
+                if (
+                    sx < range.minSectorX - UNLOAD_MARGIN ||
+                    sx > range.maxSectorX + UNLOAD_MARGIN ||
+                    sy < range.minSectorY - UNLOAD_MARGIN ||
+                    sy > range.maxSectorY + UNLOAD_MARGIN
+                ) {
+                    sectorCache.delete(key);
+                }
+            }
+
             ctx.clearRect(0, 0, cssWidth, cssHeight);
+            ctx.globalAlpha = fadeAlpha;
 
-            const { panX, panY, zoom } = useCameraStore.getState();
-            const PARALLAX = 0.12;
-            const parallaxX = -panX * zoom * PARALLAX;
-            const parallaxY = -panY * zoom * PARALLAX;
+            const halfW = cssWidth / 2;
+            const halfH = cssHeight / 2;
 
-            for (const star of stars) {
-                const t = elapsed % star.pulseDuration;
-                const phase = (t / star.pulseDuration) * Math.PI * 2 + star.phaseOffset;
-                const sinVal = (Math.sin(phase) + 1) / 2;
-                const opacity = star.baseOpacity + 0.25 * sinVal;
+            for (let sy = range.minSectorY; sy <= range.maxSectorY; sy++) {
+                for (let sx = range.minSectorX; sx <= range.maxSectorX; sx++) {
+                    const stars = getSector(sx, sy);
+                    for (const star of stars) {
+                        const screenX = halfW + (star.x - panX) * zoom;
+                        const screenY = halfH + (star.y - panY) * zoom;
 
-                ctx.beginPath();
-                ctx.arc(
-                    star.xRatio * cssWidth + parallaxX,
-                    star.yRatio * cssHeight + parallaxY,
-                    star.radius,
-                    0,
-                    Math.PI * 2,
-                );
-                ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
-                ctx.fill();
+                        ctx.beginPath();
+                        ctx.arc(screenX, screenY, star.size, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                        ctx.fill();
+                    }
+                }
             }
 
             ctx.globalAlpha = 1;
             rafId = requestAnimationFrame(draw);
         };
 
-        draw(performance.now());
+        rafId = requestAnimationFrame(draw);
         document.documentElement.dataset.canvasReady = '';
         fadeStartTime = performance.now();
 
         const handleResize = () => {
             setSize();
             setVh();
+            needsRedraw = true;
         };
 
         window.addEventListener('resize', handleResize);
@@ -143,6 +161,7 @@ export default function AmbientStars() {
         return () => {
             cancelAnimationFrame(rafId);
             window.removeEventListener('resize', handleResize);
+            sectorCache.clear();
         };
     }, []);
 
