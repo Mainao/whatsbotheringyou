@@ -6,18 +6,17 @@ import Image from 'next/image';
 
 import { MoveRight } from 'lucide-react';
 
+import { getStarWorldBase } from '@/lib/starPosition';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
+import usePanStore from '@/store/usePanStore';
 import useStarsStore from '@/store/useStarsStore';
 
 import { Button } from '@/components/ui/Button';
 
 import type { StarRecord } from '@/types/star';
 
-type SubmitResult =
-    | { ok: true; star: StarRecord }
-    | { ok: false; kind: 'already_submitted'; message: string }
-    | { ok: false; kind: 'error'; message: string };
+type SubmitResult = { ok: true; star: StarRecord } | { ok: false; message: string };
 
 async function submitStar(
     worryText: string,
@@ -33,22 +32,8 @@ async function submitStar(
 
     const response = await fetch('/api/star', { method: 'POST', body: formData });
 
-    if (response.status === 429) {
-        const data = (await response.json()) as { error?: string; message?: string };
-        if (data.error === 'already_submitted') {
-            return {
-                ok: false,
-                kind: 'already_submitted',
-                message:
-                    data.message ??
-                    "You've already released your worry today. Come back tomorrow ✨",
-            };
-        }
-        return { ok: false, kind: 'error', message: 'Too many requests — please try again later.' };
-    }
-
     if (!response.ok) {
-        return { ok: false, kind: 'error', message: 'Something went wrong — please try again.' };
+        return { ok: false, message: 'Something went wrong — please try again.' };
     }
 
     const data = (await response.json()) as { star: StarRecord };
@@ -69,11 +54,10 @@ export default function Step2WriteText() {
     const close = useModalStore((s) => s.close);
     const addStar = useStarsStore((s) => s.addStar);
     const setOwnStar = useStarsStore((s) => s.setOwnStar);
-    const triggerFadeIn = useStarsStore((s) => s.triggerFadeIn);
+    const requestPan = usePanStore((s) => s.requestPan);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
-    const [dailyNotice, setDailyNotice] = useState<string | null>(null);
 
     useEffect(() => {
         if (!previewBlob) return;
@@ -95,6 +79,28 @@ export default function Step2WriteText() {
         setIsValidating(true);
         setValidationError(null);
 
+        const finalizeSubmission = async () => {
+            const result = await submitStar(trimmed, chosenColour, submissionBlob);
+            if (result.ok) {
+                addStar(result.star);
+                setOwnStar(result.star.id);
+                // Resolve the spiral index from post-insert state using the same
+                // createdAt sort UserStars applies, so the pan target is always correct.
+                const sorted = [...useStarsStore.getState().stars].sort(
+                    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                );
+                const index = sorted.findIndex((s) => s.id === result.star.id);
+                const { x: worldX, y: worldY } = getStarWorldBase(
+                    index >= 0 ? index : sorted.length - 1,
+                );
+                requestPan(worldX, worldY, result.star.id);
+                close();
+                reset();
+            } else {
+                setValidationError(result.message);
+            }
+        };
+
         try {
             const response = await fetch('/api/validate-text', {
                 method: 'POST',
@@ -107,18 +113,7 @@ export default function Step2WriteText() {
             };
 
             if (data.status === 'valid') {
-                const result = await submitStar(trimmed, chosenColour, submissionBlob);
-                if (result.ok) {
-                    addStar(result.star);
-                    setOwnStar(result.star.id);
-                    triggerFadeIn(result.star.id);
-                    close();
-                    reset();
-                } else if (result.kind === 'already_submitted') {
-                    setDailyNotice(result.message);
-                } else {
-                    setValidationError(result.message);
-                }
+                await finalizeSubmission();
             } else if (data.status === 'crisis') {
                 triggerCrisis();
             } else {
@@ -137,18 +132,7 @@ export default function Step2WriteText() {
                 }
             }
         } catch {
-            const result = await submitStar(trimmed, chosenColour, submissionBlob);
-            if (result.ok) {
-                addStar(result.star);
-                setOwnStar(result.star.id);
-                triggerFadeIn(result.star.id);
-                close();
-                reset();
-            } else if (result.kind === 'already_submitted') {
-                setDailyNotice(result.message);
-            } else {
-                setValidationError(result.message);
-            }
+            await finalizeSubmission();
         } finally {
             setIsValidating(false);
             setWorryText('');
@@ -156,17 +140,6 @@ export default function Step2WriteText() {
     };
 
     const typed = worryText.length;
-
-    if (dailyNotice !== null) {
-        return (
-            <div className="flex flex-col flex-1 items-center justify-center text-center gap-5 py-8">
-                <span className="text-5xl">✨</span>
-                <p className="text-text-primary text-sm leading-relaxed max-w-[260px]">
-                    {dailyNotice}
-                </p>
-            </div>
-        );
-    }
 
     return (
         <div className="flex flex-col flex-1 w-full">
