@@ -63,7 +63,7 @@ dialog.dialog-opening::backdrop {
 }
 
 dialog.dialog-closing::backdrop {
-    background: rgba(0, 0, 0, 0);
+    background: transparent;
     backdrop-filter: none;
 }
 
