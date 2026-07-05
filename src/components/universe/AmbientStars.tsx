@@ -2,7 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 
-import { generateSectorStars, getVisibleSectorRange, sectorKey } from '@/lib/sectorStars';
+import {
+    generateSectorStars,
+    getVisibleSectorRange,
+    parseSectorKey,
+    sectorKey,
+} from '@/lib/sectorStars';
 import useCameraStore from '@/store/useCameraStore';
 
 import type { SectorStar } from '@/lib/sectorStars';
@@ -108,9 +113,7 @@ export default function AmbientStars() {
 
             // Drop sectors that have drifted well outside the viewport to bound memory.
             for (const key of sectorCache.keys()) {
-                const comma = key.indexOf(',');
-                const sx = Number(key.slice(0, comma));
-                const sy = Number(key.slice(comma + 1));
+                const { sx, sy } = parseSectorKey(key);
                 if (
                     sx < range.minSectorX - UNLOAD_MARGIN ||
                     sx > range.maxSectorX + UNLOAD_MARGIN ||

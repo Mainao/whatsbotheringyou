@@ -79,15 +79,20 @@ export default function Step2WriteText() {
         setIsValidating(true);
         setValidationError(null);
 
-        // Snapshot the star count before the async POST so the new star lands at
-        // the correct spiral index even if another star arrives concurrently.
         const finalizeSubmission = async () => {
-            const newIndex = useStarsStore.getState().stars.length;
             const result = await submitStar(trimmed, chosenColour, submissionBlob);
             if (result.ok) {
-                const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
                 addStar(result.star);
                 setOwnStar(result.star.id);
+                // Resolve the spiral index from post-insert state using the same
+                // createdAt sort UserStars applies, so the pan target is always correct.
+                const sorted = [...useStarsStore.getState().stars].sort(
+                    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                );
+                const index = sorted.findIndex((s) => s.id === result.star.id);
+                const { x: worldX, y: worldY } = getStarWorldBase(
+                    index >= 0 ? index : sorted.length - 1,
+                );
                 requestPan(worldX, worldY, result.star.id);
                 close();
                 reset();

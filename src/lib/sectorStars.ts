@@ -20,6 +20,14 @@ export function sectorKey(sectorX: number, sectorY: number): string {
     return `${sectorX},${sectorY}`;
 }
 
+export function parseSectorKey(key: string): { sx: number; sy: number } {
+    const comma = key.indexOf(',');
+    return {
+        sx: Number(key.slice(0, comma)),
+        sy: Number(key.slice(comma + 1)),
+    };
+}
+
 // 32-bit spatial hash — Math.imul keeps the multiply in int32 so the result is
 // identical across engines, and >>> 0 yields an unsigned seed for the PRNG.
 export function sectorSeed(sectorX: number, sectorY: number): number {

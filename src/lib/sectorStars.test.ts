@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateSectorStars, getVisibleSectorRange, sectorSeed, SECTOR_SIZE } from './sectorStars';
+import {
+    generateSectorStars,
+    getVisibleSectorRange,
+    parseSectorKey,
+    sectorKey,
+    sectorSeed,
+    SECTOR_SIZE,
+} from './sectorStars';
 
 describe('sectorSeed', () => {
     it('is deterministic for a given sector', () => {
@@ -65,6 +72,20 @@ describe('generateSectorStars', () => {
             expect(star.opacity).toBeGreaterThanOrEqual(0.4);
             expect(star.opacity).toBeLessThanOrEqual(1.0);
         }
+    });
+});
+
+describe('parseSectorKey', () => {
+    it('is the inverse of sectorKey for positive coordinates', () => {
+        expect(parseSectorKey(sectorKey(4, 7))).toEqual({ sx: 4, sy: 7 });
+    });
+
+    it('is the inverse of sectorKey for negative coordinates', () => {
+        expect(parseSectorKey(sectorKey(-3, -12))).toEqual({ sx: -3, sy: -12 });
+    });
+
+    it('handles zero coordinates', () => {
+        expect(parseSectorKey(sectorKey(0, 0))).toEqual({ sx: 0, sy: 0 });
     });
 });
 
