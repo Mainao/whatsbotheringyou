@@ -6,8 +6,10 @@ import Image from 'next/image';
 
 import { MoveRight } from 'lucide-react';
 
+import { getStarWorldBase } from '@/lib/starPosition';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
+import usePanStore from '@/store/usePanStore';
 import useStarsStore from '@/store/useStarsStore';
 
 import { Button } from '@/components/ui/Button';
@@ -52,7 +54,7 @@ export default function Step2WriteText() {
     const close = useModalStore((s) => s.close);
     const addStar = useStarsStore((s) => s.addStar);
     const setOwnStar = useStarsStore((s) => s.setOwnStar);
-    const triggerFadeIn = useStarsStore((s) => s.triggerFadeIn);
+    const requestPan = usePanStore((s) => s.requestPan);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
@@ -89,11 +91,13 @@ export default function Step2WriteText() {
             };
 
             if (data.status === 'valid') {
+                const newIndex = useStarsStore.getState().stars.length;
                 const result = await submitStar(trimmed, chosenColour, submissionBlob);
                 if (result.ok) {
+                    const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
                     addStar(result.star);
                     setOwnStar(result.star.id);
-                    triggerFadeIn(result.star.id);
+                    requestPan(worldX, worldY, result.star.id);
                     close();
                     reset();
                 } else {
@@ -117,11 +121,13 @@ export default function Step2WriteText() {
                 }
             }
         } catch {
+            const newIndex = useStarsStore.getState().stars.length;
             const result = await submitStar(trimmed, chosenColour, submissionBlob);
             if (result.ok) {
+                const { x: worldX, y: worldY } = getStarWorldBase(newIndex);
                 addStar(result.star);
                 setOwnStar(result.star.id);
-                triggerFadeIn(result.star.id);
+                requestPan(worldX, worldY, result.star.id);
                 close();
                 reset();
             } else {

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef } from 'react';
 
+import { GOLDEN_ANGLE, SPIRAL_SPACING } from '@/lib/starPosition';
 import useCameraStore from '@/store/useCameraStore';
 import useModalStore from '@/store/useModalStore';
+import usePanStore from '@/store/usePanStore';
 import useStarsStore from '@/store/useStarsStore';
 
 import type { StarRecord } from '@/types/star';
@@ -28,12 +30,9 @@ const ANIM_PHASE1_MS = 400;
 const ANIM_PHASE2_MS = 200;
 const ANIM_GLOW_MS = 600;
 const ANIM_TOTAL_MS = ANIM_PHASE1_MS + ANIM_PHASE2_MS + ANIM_GLOW_MS;
-// Golden angle in radians — ensures no two stars share the same angular sector,
-// filling gaps evenly as the spiral grows.
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
+const PAN_DURATION_MS = 800;
 const DRAG_THRESHOLD = 8;
 const INERTIA_FRICTION = 0.92;
-const SPIRAL_SPACING = 100; // world-space px between rings
 const MIN_ZOOM = 0.4;
 const MAX_ZOOM = 2.5;
 const CULL_MARGIN = STAR_SIZE * 2;
@@ -84,6 +83,25 @@ export default function UserStars() {
     const newStarIdRef = useRef<string | null>(null);
     const fadeStartRef = useRef<number>(-1);
     const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+    interface PanAnim {
+        active: boolean;
+        startTime: number;
+        startX: number;
+        startY: number;
+        targetX: number;
+        targetY: number;
+        starId: string;
+    }
+    const panAnimRef = useRef<PanAnim>({
+        active: false,
+        startTime: 0,
+        startX: 0,
+        startY: 0,
+        targetX: 0,
+        targetY: 0,
+        starId: '',
+    });
 
     // Camera state — local refs for 60fps draw loop; synced to store for cross-component reads
     const panXRef = useRef(0);
@@ -205,6 +223,44 @@ export default function UserStars() {
 
             if (newStarIdRef.current !== null && fadeStartRef.current === -1) {
                 fadeStartRef.current = timestamp;
+            }
+
+            // Pick up a pan-to-star request (set by Step2WriteText after submission).
+            const pendingPan = usePanStore.getState().pendingPan;
+            if (pendingPan !== null) {
+                if (inertiaRafIdRef.current !== null) {
+                    cancelAnimationFrame(inertiaRafIdRef.current);
+                    inertiaRafIdRef.current = null;
+                }
+                velXRef.current = 0;
+                velYRef.current = 0;
+                panAnimRef.current = {
+                    active: true,
+                    startTime: timestamp,
+                    startX: panXRef.current,
+                    startY: panYRef.current,
+                    targetX: pendingPan.worldX,
+                    targetY: pendingPan.worldY,
+                    starId: pendingPan.starId,
+                };
+                usePanStore.getState().consumePan();
+            }
+
+            // Apply in-progress pan animation.
+            if (panAnimRef.current.active) {
+                const t = Math.min(1, (timestamp - panAnimRef.current.startTime) / PAN_DURATION_MS);
+                const eased = 1 - (1 - t) * (1 - t);
+                panXRef.current =
+                    panAnimRef.current.startX +
+                    (panAnimRef.current.targetX - panAnimRef.current.startX) * eased;
+                panYRef.current =
+                    panAnimRef.current.startY +
+                    (panAnimRef.current.targetY - panAnimRef.current.startY) * eased;
+                syncCamera();
+                if (t >= 1) {
+                    panAnimRef.current.active = false;
+                    useStarsStore.getState().triggerFadeIn(panAnimRef.current.starId);
+                }
             }
 
             ctx.clearRect(0, 0, cssWidth, cssHeight);
@@ -381,6 +437,8 @@ export default function UserStars() {
                 cancelAnimationFrame(inertiaRafIdRef.current);
                 inertiaRafIdRef.current = null;
             }
+
+            panAnimRef.current.active = false;
 
             if (activePointersRef.current.size === 1) {
                 pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
