@@ -19,6 +19,7 @@ const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_STORE_MAX_ENTRIES = 5_000;
 const MAX_STARS = 500;
 const MAX_FILE_SIZE = 1 * 1024 * 1024;
+const ALLOWED_DRAWING_TYPES = new Set(['image/png', 'image/jpeg']);
 
 interface RateLimitEntry {
     count: number;
@@ -59,9 +60,28 @@ function checkRateLimit(
     return { allowed: true, retryAfter: 0 };
 }
 
+function getClientIp(request: Request): string | null {
+    const forwardedFor = request.headers.get('x-forwarded-for');
+    if (forwardedFor !== null) {
+        const firstIp = forwardedFor.split(',')[0]?.trim();
+        if (firstIp !== undefined && firstIp.length > 0) {
+            return firstIp;
+        }
+    }
+
+    const realIp = request.headers.get('x-real-ip');
+    if (realIp !== null && realIp.trim().length > 0) {
+        return realIp.trim();
+    }
+
+    return null;
+}
+
 export async function GET(request: Request): Promise<Response> {
-    const ip =
-        request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
+    const ip = getClientIp(request);
+    if (ip === null) {
+        return Response.json({ error: 'Too many requests' }, { status: 429 });
+    }
     const rateLimit = checkRateLimit(getRateLimitStore, ip, GET_RATE_LIMIT_MAX);
 
     if (!rateLimit.allowed) {
@@ -121,8 +141,10 @@ export async function GET(request: Request): Promise<Response> {
 }
 
 export async function POST(request: Request): Promise<Response> {
-    const ip =
-        request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
+    const ip = getClientIp(request);
+    if (ip === null) {
+        return Response.json({ error: 'Too many requests' }, { status: 429 });
+    }
     const rateLimit = checkRateLimit(postRateLimitStore, ip, POST_RATE_LIMIT_MAX);
 
     if (!rateLimit.allowed) {
@@ -167,6 +189,12 @@ export async function POST(request: Request): Promise<Response> {
 
         let drawingData: string | null = null;
         if (drawing instanceof Blob) {
+            if (!ALLOWED_DRAWING_TYPES.has(drawing.type)) {
+                return Response.json(
+                    { error: 'drawing must be a PNG or JPEG image' },
+                    { status: 400 },
+                );
+            }
             if (drawing.size > MAX_FILE_SIZE) {
                 return Response.json({ error: 'drawing too large' }, { status: 400 });
             }
@@ -181,6 +209,15 @@ export async function POST(request: Request): Promise<Response> {
                 authorId: ip,
                 starColor: starColor.trim(),
                 drawingData,
+            },
+            select: {
+                id: true,
+                message: true,
+                displayName: true,
+                starColor: true,
+                drawingData: true,
+                replyCount: true,
+                createdAt: true,
             },
         });
 

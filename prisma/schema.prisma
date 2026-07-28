@@ -14,7 +14,7 @@ datasource db {
 model Star {
     id          String   @id @default(uuid()) @db.Uuid
     message     String   @db.VarChar(280)
-    displayName String   @default("Anonymous Wanderer") @map("display_name")
+    displayName String   @default("Anonymous Wanderer") @map("display_name") @db.VarChar(40)
     authorId    String   @map("author_id")
     starColor   String   @default("#FFD700") @map("star_color")
     drawingData String?  @map("drawing_data") @db.Text
