@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 
-import { MoveRight } from 'lucide-react';
+import { MoveRight, Shuffle } from 'lucide-react';
+
+import { generateDisplayName } from '@/constants/displayName';
 
 import { getStarWorldBase } from '@/lib/starPosition';
 import useDrawingStore from '@/store/useDrawingStore';
@@ -20,17 +22,19 @@ type SubmitResult = { ok: true; star: StarRecord } | { ok: false; message: strin
 
 async function submitStar(
     worryText: string,
+    displayName: string,
     starColor: string,
     blob: Blob | null,
 ): Promise<SubmitResult> {
     const formData = new FormData();
     formData.append('worryText', worryText);
+    formData.append('displayName', displayName);
     formData.append('starColor', starColor);
     if (blob !== null) {
         formData.append('drawing', blob);
     }
 
-    const response = await fetch('/api/star', { method: 'POST', body: formData });
+    const response = await fetch('/api/stars', { method: 'POST', body: formData });
 
     if (!response.ok) {
         return { ok: false, message: 'Something went wrong — please try again.' };
@@ -58,6 +62,7 @@ export default function Step2WriteText() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [displayName, setDisplayName] = useState('');
 
     useEffect(() => {
         if (!previewBlob) return;
@@ -65,6 +70,14 @@ export default function Step2WriteText() {
         setPreviewUrl(url);
         return () => URL.revokeObjectURL(url);
     }, [previewBlob]);
+
+    useEffect(() => {
+        setDisplayName(generateDisplayName());
+    }, []);
+
+    const handleShuffleDisplayName = () => {
+        setDisplayName(generateDisplayName());
+    };
 
     const handleSubmit = async () => {
         const trimmed = worryText.trim();
@@ -80,7 +93,7 @@ export default function Step2WriteText() {
         setValidationError(null);
 
         const finalizeSubmission = async () => {
-            const result = await submitStar(trimmed, chosenColour, submissionBlob);
+            const result = await submitStar(trimmed, displayName, chosenColour, submissionBlob);
             if (result.ok) {
                 addStar(result.star);
                 setOwnStar(result.star.id);
@@ -158,6 +171,31 @@ export default function Step2WriteText() {
                     />
                 </div>
             )}
+
+            <div className="mt-4">
+                <label htmlFor="display-name-input" className="mb-1 block text-xs text-text-muted">
+                    Name your star
+                </label>
+                <div className="flex items-center gap-2">
+                    <input
+                        id="display-name-input"
+                        type="text"
+                        aria-label="Your randomly generated display name"
+                        value={displayName}
+                        readOnly
+                        className="w-full rounded-lg bg-bg-raised border border-white/10 px-4 py-2.5 text-sm text-text-primary focus:outline-none"
+                    />
+                    <Button
+                        type="button"
+                        variant="icon"
+                        aria-label="Shuffle display name"
+                        onClick={handleShuffleDisplayName}
+                        className="shrink-0 border border-white/10"
+                    >
+                        <Shuffle size={14} />
+                    </Button>
+                </div>
+            </div>
 
             <div className="mt-4">
                 <textarea

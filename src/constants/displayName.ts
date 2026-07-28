@@ -1,0 +1,36 @@
+export const STAR_NAMES = [
+    'Astra',
+    'Vesper',
+    'Solara',
+    'Cassia',
+    'Orion',
+    'Thalen',
+    'Luminae',
+    'Vireo',
+    'Selene',
+    'Caelum',
+    'Elowen',
+    'Zephyra',
+    'Marama',
+    'Ilyra',
+    'Nyx',
+    'Corvin',
+    'Amara',
+    'Sylas',
+    'Wren',
+    'Aria',
+    'Halcyon',
+    'Everen',
+    'Kaelis',
+    'Sable',
+    'Faelan',
+    'Ondine',
+    'Rhiven',
+    'Solenne',
+    'Auren',
+    'Vale',
+];
+
+export function generateDisplayName(): string {
+    return STAR_NAMES[Math.floor(Math.random() * STAR_NAMES.length)] ?? 'Astra';
+}

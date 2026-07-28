@@ -68,6 +68,7 @@ export default function StarDetail() {
                     >
                         {star.message}
                     </p>
+                    <p className="mt-2 text-xs text-text-muted">— {star.displayName}</p>
                 </div>
             )}
         </Modal>
