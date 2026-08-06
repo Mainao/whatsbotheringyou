@@ -13,6 +13,7 @@ import useStarsStore from '@/store/useStarsStore';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import PresenceCounter from '@/components/universe/PresenceCounter';
+import StarsLoading from '@/components/universe/StarsLoading';
 import UniverseCanvas from '@/components/universe/UniverseCanvas';
 
 const Step1Draw = dynamic(() => import('@/components/add-star/Step1Draw'), { ssr: false });
@@ -49,6 +50,7 @@ export default function Home() {
         <main className="fixed inset-0 w-screen h-screen overflow-hidden">
             {isCrisis && <CrisisScreen />}
             <UniverseCanvas />
+            <StarsLoading />
 
             <div className="fixed top-4 left-4 z-20">
                 <p className="text-base sm:text-2xl font-semibold tracking-widest uppercase text-text-muted font-heading">

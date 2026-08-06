@@ -4,6 +4,7 @@ import type { StarRecord } from '@/types/star';
 
 interface StarsStore {
     stars: StarRecord[];
+    isLoading: boolean;
     selectedStarId: string | null;
     ownStarId: string | null;
     pendingFadeInId: string | null;
@@ -17,12 +18,17 @@ interface StarsStore {
     consumeFadeIn: () => void;
 }
 
+let fetchStarsRequestId = 0;
+
 const useStarsStore = create<StarsStore>()((set) => ({
     stars: [],
+    isLoading: true,
     selectedStarId: null,
     ownStarId: null,
     pendingFadeInId: null,
     fetchStars: async () => {
+        const requestId = ++fetchStarsRequestId;
+        set({ isLoading: true });
         try {
             const res = await fetch('/api/stars?drawings=false');
             if (!res.ok) return;
@@ -30,6 +36,10 @@ const useStarsStore = create<StarsStore>()((set) => ({
             set({ stars: data.stars });
         } catch {
             // fail silently — universe renders without DB stars on network error
+        } finally {
+            if (requestId === fetchStarsRequestId) {
+                set({ isLoading: false });
+            }
         }
     },
     fetchDrawings: async () => {
@@ -51,3 +61,4 @@ const useStarsStore = create<StarsStore>()((set) => ({
 }));
 
 export default useStarsStore;
+export type { StarsStore };

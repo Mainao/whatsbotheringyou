@@ -6,6 +6,8 @@ import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@/lib/cn';
 
+import { Spinner } from '@/components/ui/Spinner';
+
 const buttonVariants = cva(
     'text-sm font-medium transition-all duration-200 cursor-pointer inline-flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-default',
     {
@@ -29,23 +31,6 @@ const buttonVariants = cva(
         },
     },
 );
-
-function Spinner() {
-    return (
-        <span
-            style={{
-                display: 'inline-block',
-                width: '18px',
-                height: '18px',
-                border: '2px solid rgba(255,255,255,0.3)',
-                borderTopColor: 'white',
-                borderRadius: '50%',
-                animation: 'spin 0.7s linear infinite',
-                flexShrink: 0,
-            }}
-        />
-    );
-}
 
 interface ButtonProps
     extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {
