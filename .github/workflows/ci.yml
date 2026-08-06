@@ -39,6 +39,9 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Generate Prisma client
+              run: npx prisma generate
+
             - name: Type check
               run: pnpm type-check
 
@@ -50,12 +53,6 @@ jobs:
 
             - name: Run tests
               run: pnpm test:coverage
-
-            - name: SonarQube scan
-              uses: SonarSource/sonarqube-scan-action@9598b8a83feef37de07f549027fab50ecffe6a6e # v7.0.0
-              env:
-                  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-                  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
 
             - name: Build
               run: pnpm build

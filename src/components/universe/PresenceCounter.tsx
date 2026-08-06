@@ -3,7 +3,7 @@ interface PresenceCounterProps {
 }
 
 export default function PresenceCounter({ count = 0 }: PresenceCounterProps) {
-    const noun = count === 1 ? 'star' : 'stars';
+    const noun = count === 1 ? 'soul' : 'souls';
     const formatted = count.toLocaleString('en-US');
 
     return (

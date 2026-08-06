@@ -30,6 +30,7 @@ const config: Config = {
             animation: {
                 'star-pulse': 'star-pulse 3s ease-in-out infinite',
                 'shooting-star': 'shooting-star 1.2s ease-in forwards',
+                'fade-in': 'fade-in 0.7s ease-out both',
             },
             keyframes: {
                 'star-pulse': {
@@ -39,6 +40,10 @@ const config: Config = {
                 'shooting-star': {
                     '0%': { opacity: '0.8', transform: 'translateX(0) translateY(0)' },
                     '100%': { opacity: '0', transform: 'translateX(120px) translateY(120px)' },
+                },
+                'fade-in': {
+                    '0%': { opacity: '0', transform: 'translateY(10px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
             },
         },

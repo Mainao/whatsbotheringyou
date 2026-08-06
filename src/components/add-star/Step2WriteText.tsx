@@ -4,41 +4,115 @@ import { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 
-import { MoveRight } from 'lucide-react';
+import { MoveRight, Shuffle } from 'lucide-react';
 
+import { generateDisplayName } from '@/constants/displayName';
+
+import { getStarWorldBase } from '@/lib/starPosition';
 import useDrawingStore from '@/store/useDrawingStore';
 import useModalStore from '@/store/useModalStore';
+import usePanStore from '@/store/usePanStore';
+import useStarsStore from '@/store/useStarsStore';
 
 import { Button } from '@/components/ui/Button';
+
+import type { StarRecord } from '@/types/star';
+
+type SubmitResult = { ok: true; star: StarRecord } | { ok: false; message: string };
+
+async function submitStar(
+    worryText: string,
+    displayName: string,
+    starColor: string,
+    blob: Blob | null,
+): Promise<SubmitResult> {
+    const formData = new FormData();
+    formData.append('worryText', worryText);
+    formData.append('displayName', displayName);
+    formData.append('starColor', starColor);
+    if (blob !== null) {
+        formData.append('drawing', blob);
+    }
+
+    const response = await fetch('/api/stars', { method: 'POST', body: formData });
+
+    if (!response.ok) {
+        return { ok: false, message: 'Something went wrong — please try again.' };
+    }
+
+    const data = (await response.json()) as { star: StarRecord };
+    return { ok: true, star: data.star };
+}
 
 const MAX_CHARS = 140;
 
 export default function Step2WriteText() {
     const worryText = useDrawingStore((s) => s.worryText);
     const setWorryText = useDrawingStore((s) => s.setWorryText);
-    const canvasBlob = useDrawingStore((s) => s.previewBlob);
-    const nextStep = useModalStore((s) => s.nextStep);
+    const submissionBlob = useDrawingStore((s) => s.canvasBlob);
+    const previewBlob = useDrawingStore((s) => s.previewBlob);
+    const chosenColour = useDrawingStore((s) => s.chosenColour);
+    const reset = useDrawingStore((s) => s.reset);
+    const triggerCrisis = useModalStore((s) => s.triggerCrisis);
+    const isCrisis = useModalStore((s) => s.isCrisis);
+    const close = useModalStore((s) => s.close);
+    const addStar = useStarsStore((s) => s.addStar);
+    const setOwnStar = useStarsStore((s) => s.setOwnStar);
+    const requestPan = usePanStore((s) => s.requestPan);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [isValidating, setIsValidating] = useState(false);
     const [validationError, setValidationError] = useState<string | null>(null);
+    const [displayName, setDisplayName] = useState('');
 
     useEffect(() => {
-        if (!canvasBlob) return;
-        const url = URL.createObjectURL(canvasBlob);
+        if (!previewBlob) return;
+        const url = URL.createObjectURL(previewBlob);
         setPreviewUrl(url);
         return () => URL.revokeObjectURL(url);
-    }, [canvasBlob]);
+    }, [previewBlob]);
 
-    const handleContinue = async () => {
+    useEffect(() => {
+        setDisplayName(generateDisplayName());
+    }, []);
+
+    const handleShuffleDisplayName = () => {
+        setDisplayName(generateDisplayName());
+    };
+
+    const handleSubmit = async () => {
         const trimmed = worryText.trim();
 
         if (trimmed.length === 0) {
-            nextStep();
+            setValidationError(
+                'What is bothering you? Share something to release it to the universe.',
+            );
             return;
         }
 
         setIsValidating(true);
         setValidationError(null);
+
+        const finalizeSubmission = async () => {
+            const result = await submitStar(trimmed, displayName, chosenColour, submissionBlob);
+            if (result.ok) {
+                addStar(result.star);
+                setOwnStar(result.star.id);
+                // Resolve the spiral index from post-insert state using the same
+                // createdAt sort UserStars applies, so the pan target is always correct.
+                const sorted = [...useStarsStore.getState().stars].sort(
+                    (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+                );
+                const index = sorted.findIndex((s) => s.id === result.star.id);
+                const { x: worldX, y: worldY } = getStarWorldBase(
+                    index >= 0 ? index : sorted.length - 1,
+                );
+                requestPan(worldX, worldY, result.star.id);
+                close();
+                reset();
+            } else {
+                setValidationError(result.message);
+            }
+        };
 
         try {
             const response = await fetch('/api/validate-text', {
@@ -46,19 +120,35 @@ export default function Step2WriteText() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: trimmed }),
             });
-            const data = (await response.json()) as { valid: boolean; reason: string };
+            const data = (await response.json()) as {
+                status: 'valid' | 'invalid' | 'crisis';
+                reason: string;
+            };
 
-            if (data.valid) {
-                nextStep();
+            if (data.status === 'valid') {
+                await finalizeSubmission();
+            } else if (data.status === 'crisis') {
+                triggerCrisis();
             } else {
-                setValidationError(
-                    `The universe is listening — try sharing what's actually bothering you.`,
-                );
+                if (data.reason === 'harmful') {
+                    setValidationError(
+                        'This is a space for kindness. Please be gentle with your words 💫',
+                    );
+                } else if (data.reason === 'non-english') {
+                    setValidationError(
+                        'We currently support English only. Please share your worry in English 💫',
+                    );
+                } else {
+                    setValidationError(
+                        "The universe is listening — try sharing what's actually bothering you.",
+                    );
+                }
             }
         } catch {
-            nextStep();
+            await finalizeSubmission();
         } finally {
             setIsValidating(false);
+            setWorryText('');
         }
     };
 
@@ -83,6 +173,31 @@ export default function Step2WriteText() {
             )}
 
             <div className="mt-4">
+                <label htmlFor="display-name-input" className="mb-1 block text-xs text-text-muted">
+                    Name your star
+                </label>
+                <div className="flex items-center gap-2">
+                    <input
+                        id="display-name-input"
+                        type="text"
+                        aria-label="Your randomly generated display name"
+                        value={displayName}
+                        readOnly
+                        className="w-full rounded-lg bg-bg-raised border border-white/10 px-4 py-2.5 text-sm text-text-primary focus:outline-none"
+                    />
+                    <Button
+                        type="button"
+                        variant="icon"
+                        aria-label="Shuffle display name"
+                        onClick={handleShuffleDisplayName}
+                        className="shrink-0 border border-white/10"
+                    >
+                        <Shuffle size={14} />
+                    </Button>
+                </div>
+            </div>
+
+            <div className="mt-4">
                 <textarea
                     aria-label="What's bothering you"
                     maxLength={MAX_CHARS}
@@ -103,20 +218,22 @@ export default function Step2WriteText() {
                 </p>
             )}
 
-            <div className="flex w-full justify-end mt-auto pt-8">
-                <Button
-                    type="button"
-                    variant="primary"
-                    isLoading={isValidating}
-                    className="min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
-                    onClick={() => {
-                        void handleContinue();
-                    }}
-                >
-                    Continue
-                    <MoveRight size={14} />
-                </Button>
-            </div>
+            {!isCrisis && (
+                <div className="flex w-full justify-end mt-auto pt-8">
+                    <Button
+                        type="button"
+                        variant="primary"
+                        isLoading={isValidating}
+                        className="capitalize min-w-[110px] bg-gradient-to-br from-neon-pink to-brand hover:from-neon-pink/90 hover:to-brand/90"
+                        onClick={() => {
+                            void handleSubmit();
+                        }}
+                    >
+                        release your worry
+                        <MoveRight size={14} />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
