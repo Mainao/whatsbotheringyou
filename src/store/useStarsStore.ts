@@ -4,6 +4,7 @@ import type { StarRecord } from '@/types/star';
 
 interface StarsStore {
     stars: StarRecord[];
+    isLoading: boolean;
     selectedStarId: string | null;
     ownStarId: string | null;
     pendingFadeInId: string | null;
@@ -19,6 +20,7 @@ interface StarsStore {
 
 const useStarsStore = create<StarsStore>()((set) => ({
     stars: [],
+    isLoading: true,
     selectedStarId: null,
     ownStarId: null,
     pendingFadeInId: null,
@@ -30,6 +32,8 @@ const useStarsStore = create<StarsStore>()((set) => ({
             set({ stars: data.stars });
         } catch {
             // fail silently — universe renders without DB stars on network error
+        } finally {
+            set({ isLoading: false });
         }
     },
     fetchDrawings: async () => {
@@ -51,3 +55,4 @@ const useStarsStore = create<StarsStore>()((set) => ({
 }));
 
 export default useStarsStore;
+export type { StarsStore };
