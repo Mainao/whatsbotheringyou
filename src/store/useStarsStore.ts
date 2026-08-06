@@ -18,6 +18,8 @@ interface StarsStore {
     consumeFadeIn: () => void;
 }
 
+let fetchStarsRequestId = 0;
+
 const useStarsStore = create<StarsStore>()((set) => ({
     stars: [],
     isLoading: true,
@@ -25,6 +27,8 @@ const useStarsStore = create<StarsStore>()((set) => ({
     ownStarId: null,
     pendingFadeInId: null,
     fetchStars: async () => {
+        const requestId = ++fetchStarsRequestId;
+        set({ isLoading: true });
         try {
             const res = await fetch('/api/stars?drawings=false');
             if (!res.ok) return;
@@ -33,7 +37,9 @@ const useStarsStore = create<StarsStore>()((set) => ({
         } catch {
             // fail silently — universe renders without DB stars on network error
         } finally {
-            set({ isLoading: false });
+            if (requestId === fetchStarsRequestId) {
+                set({ isLoading: false });
+            }
         }
     },
     fetchDrawings: async () => {
