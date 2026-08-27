@@ -38,7 +38,7 @@ reviews:
         - path: 'src/app/api/**'
           instructions: |
               Next.js API routes — server-side only.
-              The ANTHROPIC_API_KEY must never be referenced in client
+              The GEMINI_API_KEY must never be referenced in client
               components or exposed to the browser.
               Check for: missing try/catch, unvalidated request bodies,
               missing rate limiting, and async functions not properly awaited.

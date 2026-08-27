@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB
 
@@ -42,10 +42,6 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; retr
 }
 
 export async function POST(request: Request): Promise<Response> {
-    if (process.env.NODE_ENV === 'development') {
-        return Response.json({ valid: true });
-    }
-
     const ip =
         request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip') ?? 'unknown';
     const rateLimit = checkRateLimit(ip);
@@ -64,9 +60,7 @@ export async function POST(request: Request): Promise<Response> {
     }
 
     try {
-        const anthropic = new Anthropic({
-            apiKey: process.env.ANTHROPIC_API_KEY,
-        });
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         const formData = await request.formData();
         const drawing = formData.get('drawing');
@@ -82,28 +76,13 @@ export async function POST(request: Request): Promise<Response> {
         const arrayBuffer = await drawing.arrayBuffer();
         const base64 = Buffer.from(arrayBuffer).toString('base64');
 
-        const aiCall = anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 10,
-            messages: [
-                {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/jpeg',
-                                data: base64,
-                            },
-                        },
-                        {
-                            type: 'text',
-                            text: 'Does this drawing look like a star? Reply with only YES or NO.',
-                        },
-                    ],
-                },
+        const aiCall = ai.models.generateContent({
+            model: 'gemini-3.5-flash-lite',
+            contents: [
+                { inlineData: { mimeType: 'image/jpeg', data: base64 } },
+                { text: 'Does this drawing look like a star? Reply with only YES or NO.' },
             ],
+            config: { maxOutputTokens: 10 },
         });
 
         const timeout = new Promise<never>((_, reject) =>
@@ -112,12 +91,12 @@ export async function POST(request: Request): Promise<Response> {
 
         const result = await Promise.race([aiCall, timeout]);
 
-        const firstBlock = result.content[0];
-        if (firstBlock?.type !== 'text') {
+        const text = result.text;
+        if (text === undefined) {
             return Response.json({ valid: true, error: 'invalid_response' });
         }
 
-        const valid = firstBlock.text.toUpperCase().includes('YES');
+        const valid = text.toUpperCase().includes('YES');
         return Response.json({ valid });
     } catch (error) {
         // eslint-disable-next-line no-console
