@@ -134,9 +134,9 @@ export default function Step2WriteText() {
                     setValidationError(
                         'This is a space for kindness. Please be gentle with your words 💫',
                     );
-                } else if (data.reason === 'non-english') {
+                } else if (data.reason === 'needs_more') {
                     setValidationError(
-                        'We currently support English only. Please share your worry in English 💫',
+                        "We can feel that frustration — want to tell the universe what's actually behind it?",
                     );
                 } else {
                     setValidationError(
