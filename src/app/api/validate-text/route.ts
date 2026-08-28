@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
 
 const MAX_TEXT_LENGTH = 280;
 
@@ -58,16 +58,18 @@ Casual/hyperbolic anger ("I could kill him", "she's dead to me") is always "safe
 Respond ONLY with: {"result": "safe"} or {"result": "crisis"} or {"result": "harmful"}`;
 
 async function validateWorry(
-    anthropic: Anthropic,
+    ai: GoogleGenAI,
     text: string,
 ): Promise<{ status: 'valid' | 'invalid'; reason: string }> {
     try {
-        const aiCall = anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 150,
-            temperature: 0,
-            system: WORRY_SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: `Classify this submission: "${text}"` }],
+        const aiCall = ai.models.generateContent({
+            model: 'gemini-3.5-flash-lite',
+            contents: `Classify this submission: "${text}"`,
+            config: {
+                maxOutputTokens: 150,
+                temperature: 0,
+                systemInstruction: WORRY_SYSTEM_PROMPT,
+            },
         });
 
         const timeout = new Promise<never>((_, reject) =>
@@ -75,15 +77,15 @@ async function validateWorry(
         );
 
         const result = await Promise.race([aiCall, timeout]);
-        const firstBlock = result.content[0];
+        const responseText = result.text;
 
-        if (firstBlock?.type !== 'text') {
+        if (responseText === undefined) {
             return { status: 'valid', reason: 'could not classify' };
         }
 
         let parsed: unknown;
         try {
-            parsed = JSON.parse(firstBlock.text);
+            parsed = JSON.parse(responseText);
         } catch {
             return { status: 'valid', reason: 'could not classify' };
         }
@@ -107,14 +109,17 @@ async function validateWorry(
     }
 }
 
-async function detectLanguage(anthropic: Anthropic, text: string): Promise<'english' | 'other'> {
+async function detectLanguage(ai: GoogleGenAI, text: string): Promise<'english' | 'other'> {
     try {
-        const aiCall = anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 20,
-            temperature: 0,
-            system: 'Is this text in English? Respond ONLY with: {"english": true} or {"english": false}',
-            messages: [{ role: 'user', content: text }],
+        const aiCall = ai.models.generateContent({
+            model: 'gemini-3.5-flash-lite',
+            contents: text,
+            config: {
+                maxOutputTokens: 20,
+                temperature: 0,
+                systemInstruction:
+                    'Is this text in English? Respond ONLY with: {"english": true} or {"english": false}',
+            },
         });
 
         const timeout = new Promise<never>((_, reject) =>
@@ -122,13 +127,13 @@ async function detectLanguage(anthropic: Anthropic, text: string): Promise<'engl
         );
 
         const result = await Promise.race([aiCall, timeout]);
-        const block = result.content[0];
+        const responseText = result.text;
 
-        if (block?.type !== 'text') return 'english';
+        if (responseText === undefined) return 'english';
 
         let parsed: unknown;
         try {
-            parsed = JSON.parse(block.text);
+            parsed = JSON.parse(responseText);
         } catch {
             return 'english';
         }
@@ -149,16 +154,18 @@ async function detectLanguage(anthropic: Anthropic, text: string): Promise<'engl
 }
 
 async function checkCrisis(
-    anthropic: Anthropic,
+    ai: GoogleGenAI,
     text: string,
 ): Promise<{ result: 'safe' | 'crisis' | 'harmful' }> {
     try {
-        const aiCall = anthropic.messages.create({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 50,
-            temperature: 0,
-            system: CRISIS_SYSTEM_PROMPT,
-            messages: [{ role: 'user', content: `Message: "${text}"` }],
+        const aiCall = ai.models.generateContent({
+            model: 'gemini-3.5-flash-lite',
+            contents: `Message: "${text}"`,
+            config: {
+                maxOutputTokens: 50,
+                temperature: 0,
+                systemInstruction: CRISIS_SYSTEM_PROMPT,
+            },
         });
 
         const timeout = new Promise<never>((_, reject) =>
@@ -166,15 +173,15 @@ async function checkCrisis(
         );
 
         const result = await Promise.race([aiCall, timeout]);
-        const firstBlock = result.content[0];
+        const responseText = result.text;
 
-        if (firstBlock?.type !== 'text') {
+        if (responseText === undefined) {
             return { result: 'crisis' };
         }
 
         let parsed: unknown;
         try {
-            parsed = JSON.parse(firstBlock.text);
+            parsed = JSON.parse(responseText);
         } catch {
             return { result: 'crisis' };
         }
@@ -222,23 +229,23 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ status: 'invalid', reason: 'non-english' });
         }
 
-        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+        const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
         // Pass 0: Language detection — catches romanized non-English (Hindi, Spanish, French, etc.)
-        const lang = await detectLanguage(anthropic, userText);
+        const lang = await detectLanguage(ai, userText);
         if (lang === 'other') {
             return Response.json({ status: 'invalid', reason: 'non-english' });
         }
 
         // Pass 1: Worry validation
-        const worryResult = await validateWorry(anthropic, userText);
+        const worryResult = await validateWorry(ai, userText);
 
         if (worryResult.status === 'invalid') {
             return Response.json({ status: 'invalid', reason: worryResult.reason });
         }
 
         // Pass 2: Crisis detection — only runs when Pass 1 returns valid
-        const crisisResult = await checkCrisis(anthropic, userText);
+        const crisisResult = await checkCrisis(ai, userText);
 
         if (crisisResult.result === 'crisis') {
             return Response.json({ status: 'crisis', reason: 'needs support' });

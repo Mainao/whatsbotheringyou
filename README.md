@@ -25,7 +25,7 @@ The app is built as a multi-step wizard. Step 1 is the drawing canvas with AI va
 | Styling            | Tailwind CSS              | ^3.4.1   |
 | State              | Zustand                   | ^5.0.11  |
 | Component variants | class-variance-authority  | ^0.7.1   |
-| AI validation      | @anthropic-ai/sdk         | ^0.78.0  |
+| AI validation      | @google/genai             | ^2.19.0  |
 | Animation          | framer-motion             | ^12.36.0 |
 | Testing            | Vitest + Testing Library  | 2.1.8    |
 | Linting            | ESLint                    | ^8       |
@@ -77,8 +77,8 @@ The app is built as a multi-step wizard. Step 1 is the drawing canvas with AI va
 # Database
 DATABASE_URL=
 
-# Anthropic
-ANTHROPIC_API_KEY=
+# Gemini
+GEMINI_API_KEY=
 
 # App URLs
 NEXT_PUBLIC_APP_URL=
@@ -92,19 +92,19 @@ CLOUDFLARE_R2_BUCKET_NAME=
 CLOUDFLARE_R2_PUBLIC_URL=
 ```
 
-| Variable                      | Required | Description                                           | Where to get it          |
-| ----------------------------- | -------- | ----------------------------------------------------- | ------------------------ |
-| `DATABASE_URL`                | Yes      | PostgreSQL connection string                          | Your database provider   |
-| `ANTHROPIC_API_KEY`           | Yes      | Authenticates Claude API calls for drawing validation | console.anthropic.com    |
-| `NEXT_PUBLIC_APP_URL`         | Yes      | Public-facing app URL                                 | Your deployment platform |
-| `NEXT_PUBLIC_WS_URL`          | Yes      | WebSocket server URL for real-time presence           | Your deployment platform |
-| `CLOUDFLARE_R2_ACCOUNT_ID`    | Yes      | Cloudflare account ID                                 | dash.cloudflare.com      |
-| `CLOUDFLARE_R2_ACCESS_KEY_ID` | Yes      | R2 access key                                         | Cloudflare R2 dashboard  |
-| `CLOUDFLARE_R2_SECRET_KEY`    | Yes      | R2 secret key                                         | Cloudflare R2 dashboard  |
-| `CLOUDFLARE_R2_BUCKET_NAME`   | Yes      | R2 bucket for drawing storage                         | Cloudflare R2 dashboard  |
-| `CLOUDFLARE_R2_PUBLIC_URL`    | Yes      | Public base URL for stored drawings                   | Cloudflare R2 dashboard  |
-| `SONAR_TOKEN`                 | CI only  | SonarCloud authentication                             | sonarcloud.io            |
-| `SONAR_HOST_URL`              | CI only  | SonarCloud server URL                                 | sonarcloud.io            |
+| Variable                      | Required | Description                                                | Where to get it          |
+| ----------------------------- | -------- | ---------------------------------------------------------- | ------------------------ |
+| `DATABASE_URL`                | Yes      | PostgreSQL connection string                               | Your database provider   |
+| `GEMINI_API_KEY`              | Yes      | Authenticates Gemini API calls for drawing/text validation | aistudio.google.com      |
+| `NEXT_PUBLIC_APP_URL`         | Yes      | Public-facing app URL                                      | Your deployment platform |
+| `NEXT_PUBLIC_WS_URL`          | Yes      | WebSocket server URL for real-time presence                | Your deployment platform |
+| `CLOUDFLARE_R2_ACCOUNT_ID`    | Yes      | Cloudflare account ID                                      | dash.cloudflare.com      |
+| `CLOUDFLARE_R2_ACCESS_KEY_ID` | Yes      | R2 access key                                              | Cloudflare R2 dashboard  |
+| `CLOUDFLARE_R2_SECRET_KEY`    | Yes      | R2 secret key                                              | Cloudflare R2 dashboard  |
+| `CLOUDFLARE_R2_BUCKET_NAME`   | Yes      | R2 bucket for drawing storage                              | Cloudflare R2 dashboard  |
+| `CLOUDFLARE_R2_PUBLIC_URL`    | Yes      | Public base URL for stored drawings                        | Cloudflare R2 dashboard  |
+| `SONAR_TOKEN`                 | CI only  | SonarCloud authentication                                  | sonarcloud.io            |
+| `SONAR_HOST_URL`              | CI only  | SonarCloud server URL                                      | sonarcloud.io            |
 
 ## Development
 

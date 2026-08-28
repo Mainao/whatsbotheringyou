@@ -25,7 +25,7 @@ The domain is emotional expression / mental wellness, presented as a calming, da
 | clsx                            | ^2.1.1           | Conditional className merging                                |
 | tailwind-merge                  | ^3.5.0           | Tailwind conflict resolution via `cn()`                      |
 | framer-motion                   | ^12.36.0         | Installed as dependency; not currently used in any component |
-| @anthropic-ai/sdk               | ^0.78.0          | Claude API calls from API routes                             |
+| @google/genai                   | ^2.19.0          | Gemini API calls from API routes                             |
 | Vitest                          | 2.1.8            | Unit testing                                                 |
 | @testing-library/react          | ^14.3.1          | Component testing                                            |
 | @testing-library/user-event     | ^14.6.1          | User interaction simulation                                  |
@@ -289,23 +289,21 @@ Always use `create<StoreType>()()` (double call) — required for Zustand v5 wit
 
 ## 8. API Routes
 
-| Route                   | Method | Purpose                                                                                                                                                                                                                                                                                                                    |
-| ----------------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `/api/validate-drawing` | `POST` | Accepts `FormData` with a `drawing` Blob (PNG). Converts to base64, calls `claude-haiku-4-5-20251001` with image + text prompt "Does this drawing look like a star? Reply with only YES or NO." Returns `{ valid: boolean }`. Fails open (returns `{ valid: true }`) on any error. Uses `Promise.race` with an 8s timeout. |
+| Route                   | Method | Purpose                                                                                                                                                                                                                                                                                                                |
+| ----------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/api/validate-drawing` | `POST` | Accepts `FormData` with a `drawing` Blob (PNG). Converts to base64, calls `gemini-3.5-flash-lite` with image + text prompt "Does this drawing look like a star? Reply with only YES or NO." Returns `{ valid: boolean }`. Fails open (returns `{ valid: true }`) on any error. Uses `Promise.race` with an 8s timeout. |
 
-**Model in use**: `claude-haiku-4-5-20251001`
-
-**Dev mock**: In `NODE_ENV === 'development'` the route returns `{ valid: true }` immediately without calling the Anthropic API.
+**Model in use**: `gemini-3.5-flash-lite` (also used by `/api/validate-text` for language detection, worry validation, and crisis detection)
 
 ---
 
 ## 9. Environment Variables
 
-| Variable            | Side        | Required                | Purpose                                                         |
-| ------------------- | ----------- | ----------------------- | --------------------------------------------------------------- |
-| `ANTHROPIC_API_KEY` | Server only | Yes (for AI validation) | Authenticates calls to Anthropic API in `/api/validate-drawing` |
-| `SONAR_TOKEN`       | CI only     | Yes (for PR CI)         | SonarQube authentication                                        |
-| `SONAR_HOST_URL`    | CI only     | Yes (for PR CI)         | SonarQube server URL                                            |
+| Variable         | Side        | Required                | Purpose                                                                               |
+| ---------------- | ----------- | ----------------------- | ------------------------------------------------------------------------------------- |
+| `GEMINI_API_KEY` | Server only | Yes (for AI validation) | Authenticates calls to Gemini API in `/api/validate-drawing` and `/api/validate-text` |
+| `SONAR_TOKEN`    | CI only     | Yes (for PR CI)         | SonarQube authentication                                                              |
+| `SONAR_HOST_URL` | CI only     | Yes (for PR CI)         | SonarQube server URL                                                                  |
 
 No `NEXT_PUBLIC_` variables exist. No client-side environment variables are used.
 
@@ -374,7 +372,7 @@ Every file listed here exists and is complete. Do not recreate it.
 
 ### API
 
-- `src/app/api/validate-drawing/route.ts` — POST route, Anthropic AI validation
+- `src/app/api/validate-drawing/route.ts` — POST route, Gemini AI validation
 
 ### Components — Universe
 
@@ -444,7 +442,7 @@ Every file listed here exists and is complete. Do not recreate it.
 - **Open Add Star modal** — `Button` (variant="secondary") fixed top-right in `page.tsx` calls `useModalStore.open()`; modal appears with CSS open animation
 - **Draw a star (Step 1)** — `DrawingCanvas` provides a `260px` tall canvas with mouse and touch support, multi-layer glow stroke, colour picker (`ColourSwatch`), `ResizeObserver` bitmap sync
 - **Undo drawing** — Undo button calls `clearCanvas()`; disabled when canvas is blank
-- **AI validate drawing** — `Step1Draw` POSTs canvas PNG blob to `/api/validate-drawing`; invalid drawings show error message and clear canvas; AbortController 8s client timeout; fails open; returns `{ valid: true }` immediately in development
+- **AI validate drawing** — `Step1Draw` POSTs canvas PNG blob to `/api/validate-drawing`; invalid drawings show error message and clear canvas; AbortController 8s client timeout; fails open
 - **Write worry text (Step 2)** — `Step2WriteText` shows the drawn star preview, a textarea (280-char limit with counter), and a Continue button
 - **Close modal** — × button calls `handleClose` which calls `close()` + `reset()`; modal plays CSS close animation before `dialog.close()`
 - **Presence counter** — `PresenceCounter` renders "N stars in the galaxy" fixed at bottom-centre; currently hardcoded to 0
