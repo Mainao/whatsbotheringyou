@@ -201,9 +201,14 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ status: 'invalid', reason: 'text too long' });
         }
 
+        const strippedText = userText.replace(/\s/g, '');
+        const uniqueChars = new Set(strippedText.toLowerCase()).size;
+        if (strippedText.length > 8 && uniqueChars <= 2) {
+            return Response.json({ status: 'invalid', reason: 'gibberish' });
+        }
+
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-        // Crisis detection runs first, on every submission, in any language.
         const crisisResult = await checkCrisis(ai, userText);
 
         if (crisisResult.result === 'crisis') {
