@@ -45,6 +45,7 @@ async function submitStar(
 }
 
 const MAX_CHARS = 140;
+const MAX_DISPLAY_NAME_CHARS = 40;
 
 export default function Step2WriteText() {
     const worryText = useDrawingStore((s) => s.worryText);
@@ -81,6 +82,7 @@ export default function Step2WriteText() {
 
     const handleSubmit = async () => {
         const trimmed = worryText.trim();
+        const trimmedDisplayName = displayName.trim();
 
         if (trimmed.length === 0) {
             setValidationError(
@@ -89,11 +91,21 @@ export default function Step2WriteText() {
             return;
         }
 
+        if (trimmedDisplayName.length === 0) {
+            setValidationError('Give your star a name before releasing it.');
+            return;
+        }
+
         setIsValidating(true);
         setValidationError(null);
 
         const finalizeSubmission = async () => {
-            const result = await submitStar(trimmed, displayName, chosenColour, submissionBlob);
+            const result = await submitStar(
+                trimmed,
+                trimmedDisplayName,
+                chosenColour,
+                submissionBlob,
+            );
             if (result.ok) {
                 addStar(result.star);
                 setOwnStar(result.star.id);
@@ -180,10 +192,11 @@ export default function Step2WriteText() {
                     <input
                         id="display-name-input"
                         type="text"
-                        aria-label="Your randomly generated display name"
+                        aria-label="Name your star"
                         value={displayName}
-                        readOnly
-                        className="w-full rounded-lg bg-bg-raised border border-white/10 px-4 py-2.5 text-sm text-text-primary focus:outline-none"
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        maxLength={MAX_DISPLAY_NAME_CHARS}
+                        className="w-full rounded-lg bg-bg-raised border border-white/10 px-4 py-2.5 text-sm text-text-primary focus:outline-none focus:border-brand/60 transition-colors"
                     />
                     <Button
                         type="button"
