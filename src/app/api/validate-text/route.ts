@@ -19,15 +19,38 @@ VALID — A genuine personal worry, concern, frustration, or something that is b
    - "I keep failing my driving test" (daily frustration)
    Brief, factual, or casual phrasing is fine — judge by whether the person seems bothered, NOT by whether the language sounds emotional.
 
-INVALID submissions include:
-   - Random text, gibberish, keyboard smashing, test messages
-   - Jokes, memes, song lyrics, copypasta
-   - Promotional content, spam, URLs
-   - Statements that clearly aren't worries (neutral facts, recipes, etc.)
-   - Completely meaningless input (e.g. "asdf", "test", "123")
-   - Attempts to manipulate or game the system
+EXPRESSIVE BUT CONTENT-FREE — text that clearly expresses frustration, anger, or distress through
+   sounds, exclamations, or repeated characters, but does not state what is actually bothering them.
+   Examples:
+   - "aaaaaaaarrrrgghhhh!!!!!!"
+   - "ughhhhh"
+   - "argh"
+   - "!!!!!!!"
+   These are real emotional expressions, NOT gibberish or spam — the person is clearly upset about
+   something. Classify these as INVALID, but use reason "needs_more" specifically (not "gibberish"
+   or "spam"). This distinction matters: the app will show these users an encouraging message asking
+   them to share what's behind the feeling, rather than a flat rejection.
 
-Respond with ONLY a JSON object, no markdown, no backticks: {"valid": true/false, "reason": "brief explanation"}`;
+INVALID submissions include:
+   - Random text, gibberish, keyboard smashing, test messages (use reason "gibberish")
+   - Jokes, memes, song lyrics, copypasta (use reason "not_a_worry")
+   - Promotional content, spam, URLs (use reason "spam")
+   - Statements that clearly aren't worries (neutral facts, recipes, etc.) (use reason "not_a_worry")
+   - Completely meaningless input (e.g. "asdf", "test", "123") (use reason "gibberish")
+   - Attempts to manipulate or game the system (use reason "manipulation")
+
+Respond with ONLY a JSON object, no markdown, no backticks:
+{"valid": true/false, "reason": "<category>"}
+
+Where <category> must be EXACTLY one of these strings, nothing else:
+- "valid" (if valid is true)
+- "needs_more" (expressive but content-free)
+- "gibberish" (random text/keyboard smash)
+- "not_a_worry" (jokes, facts, unrelated statements)
+- "spam" (promo, URLs)
+- "manipulation" (attempts to game the system)
+
+Do not write explanations or descriptions in the reason field — only one of the exact strings above.`;
 
 const CRISIS_SYSTEM_PROMPT = `Classify this message as "crisis", "harmful", or "safe".
 
@@ -44,7 +67,6 @@ Everything else is "safe". This includes:
 - Anger at others or the world without specific threats of violence
 - Metaphorical language ("this is killing me", "I'm dead inside")
 - Venting frustration ("I want to punch someone", "I could scream") — vague anger is NOT harmful
-- Text that is not clearly in English — return "safe"
 - Anger and frustration expressed WITHOUT violence ("I'm so angry", "I hate everything", "fuck this shit", "I can't stand my boss") — anger is safe, violence is not
 
 The difference:
@@ -106,50 +128,6 @@ async function validateWorry(
         return { status: classification.valid ? 'valid' : 'invalid', reason };
     } catch {
         return { status: 'valid', reason: 'api_error' };
-    }
-}
-
-async function detectLanguage(ai: GoogleGenAI, text: string): Promise<'english' | 'other'> {
-    try {
-        const aiCall = ai.models.generateContent({
-            model: 'gemini-3.5-flash-lite',
-            contents: text,
-            config: {
-                maxOutputTokens: 20,
-                temperature: 0,
-                systemInstruction:
-                    'Is this text in English? Respond ONLY with: {"english": true} or {"english": false}',
-            },
-        });
-
-        const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 5000),
-        );
-
-        const result = await Promise.race([aiCall, timeout]);
-        const responseText = result.text;
-
-        if (responseText === undefined) return 'english';
-
-        let parsed: unknown;
-        try {
-            parsed = JSON.parse(responseText);
-        } catch {
-            return 'english';
-        }
-
-        if (
-            parsed !== null &&
-            typeof parsed === 'object' &&
-            'english' in parsed &&
-            (parsed as Record<string, unknown>).english === false
-        ) {
-            return 'other';
-        }
-
-        return 'english';
-    } catch {
-        return 'english';
     }
 }
 
@@ -223,28 +201,14 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ status: 'invalid', reason: 'text too long' });
         }
 
-        // Regex check — free, catches non-ASCII scripts (Hindi, Arabic, CJK, emoji-only, etc.)
-        const nonAsciiRatio = (userText.match(/[^\x00-\x7F]/g) ?? []).length / userText.length;
-        if (nonAsciiRatio > 0.1) {
-            return Response.json({ status: 'invalid', reason: 'non-english' });
+        const strippedText = userText.replace(/\s/g, '');
+        const uniqueChars = new Set(strippedText.toLowerCase()).size;
+        if (strippedText.length > 8 && uniqueChars <= 2) {
+            return Response.json({ status: 'invalid', reason: 'gibberish' });
         }
 
         const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-        // Pass 0: Language detection — catches romanized non-English (Hindi, Spanish, French, etc.)
-        const lang = await detectLanguage(ai, userText);
-        if (lang === 'other') {
-            return Response.json({ status: 'invalid', reason: 'non-english' });
-        }
-
-        // Pass 1: Worry validation
-        const worryResult = await validateWorry(ai, userText);
-
-        if (worryResult.status === 'invalid') {
-            return Response.json({ status: 'invalid', reason: worryResult.reason });
-        }
-
-        // Pass 2: Crisis detection — only runs when Pass 1 returns valid
         const crisisResult = await checkCrisis(ai, userText);
 
         if (crisisResult.result === 'crisis') {
@@ -255,10 +219,14 @@ export async function POST(request: Request): Promise<Response> {
             return Response.json({ status: 'invalid', reason: 'harmful' });
         }
 
+        const worryResult = await validateWorry(ai, userText);
+
+        if (worryResult.status === 'invalid') {
+            return Response.json({ status: 'invalid', reason: worryResult.reason });
+        }
+
         return Response.json({ status: 'valid', reason: worryResult.reason });
-    } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('[validate-text]', error instanceof Error ? error.message : String(error));
+    } catch {
         return Response.json({ status: 'valid', reason: 'api_error' });
     }
 }
